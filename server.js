@@ -2046,6 +2046,48 @@ app.get('/api/debug/students-count', (req, res) => {
     latestStudents
   });
 });
+
+app.get('/api/debug/teacher-students', (req, res) => {
+  try {
+    const selectedDate = String(req.query.date || '').trim();
+    const students = db.prepare('SELECT id, name, email, class, subject, approval_status, mobile, board, created_at FROM students ORDER BY class, name').all();
+    const attendanceByStudent = db.prepare("SELECT student_id, SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) AS presentCount, COUNT(*) AS totalCount FROM attendance GROUP BY student_id").all();
+    const attendanceMap = new Map(attendanceByStudent.map((row) => [row.student_id, row]));
+    const attendanceForDate = selectedDate
+      ? db.prepare('SELECT student_id, status FROM attendance WHERE date=?').all(selectedDate)
+      : [];
+    const statusMap = new Map(attendanceForDate.map((row) => [row.student_id, row.status]));
+
+    res.json({
+      status: 'ok',
+      selectedDate: selectedDate || null,
+      totalStudents: students.length,
+      students: students.map((student) => {
+        const stats = attendanceMap.get(student.id) || { presentCount: 0, totalCount: 0 };
+        const totalCount = Number(stats.totalCount) || 0;
+        const presentCount = Number(stats.presentCount) || 0;
+        const feeSummary = buildFeeSummary(student.id, student.class);
+        const latestWeeklyTest = db.prepare(
+          'SELECT title, test_date, marks_obtained, total_marks FROM weekly_tests WHERE student_id=? ORDER BY test_date DESC, created_at DESC LIMIT 1'
+        ).get(student.id) || null;
+        return {
+          ...student,
+          approvalStatus: String(student.approval_status || 'accepted').toLowerCase(),
+          currentStatus: statusMap.get(student.id) || null,
+          attendance: {
+            present: presentCount,
+            total: totalCount,
+            percentage: totalCount ? Math.round((presentCount / totalCount) * 1000) / 10 : 0
+          },
+          feeSummary,
+          latestWeeklyTest
+        };
+      })
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', error: error.message || 'Could not build teacher student snapshot.' });
+  }
+});
  
 // ============================================================
 //  START SERVER
