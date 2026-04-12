@@ -1,4 +1,4 @@
-onst API = {
+const API = {
   BASE: (() => {
     if (typeof window === 'undefined') return 'http://localhost:3000/api';
     if (window.location.protocol === 'file:') return 'http://localhost:3000/api';
