@@ -1,4 +1,4 @@
-const API = {
+onst API = {
   BASE: (() => {
     if (typeof window === 'undefined') return 'http://localhost:3000/api';
     if (window.location.protocol === 'file:') return 'http://localhost:3000/api';
@@ -18,10 +18,24 @@ const API = {
       headers,
       body: body ? JSON.stringify(body) : undefined
     });
+    const contentType = res.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const payload = isJson ? await res.json() : await res.text();
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Request failed');
-    return data;
+    if (!res.ok) {
+      const message = isJson
+        ? (payload?.error || 'Request failed')
+        : (typeof payload === 'string' && payload.includes('Not Found')
+            ? 'API route not found on the server. Please redeploy the latest backend.'
+            : 'Server returned an unexpected response.');
+      throw new Error(message);
+    }
+
+    if (!isJson) {
+      throw new Error('Server returned a non-JSON response. Please check the deployment.');
+    }
+
+    return payload;
   },
 
   get(path, token) { return this.request('GET', path, null, token); },
@@ -231,6 +245,7 @@ const API = {
     console.warn('[I LEARN API] Backend not reachable. Running in demo mode.');
   }
 })();
+
 
 
 
