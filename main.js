@@ -54,7 +54,7 @@ function switchTab(tab, el) {
     tabEl.classList.add('active');
     tabEl.style.display = tab === 'teacher' ? 'block' : '';
   }
- 
+
   if (tab === 'teacher' && hasActiveTeacherSession()) {
     refreshRoleData();
     loadTeacherAttendance();
@@ -66,7 +66,6 @@ function switchTab(tab, el) {
       loadStudentDoubts();
     });
   } else if (tab === 'parent' && hasActiveParentSession()) {
-    // Ensure widgets exist first, then refresh data
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
     refreshParentDashboard();
   }
@@ -601,7 +600,8 @@ function getProfileData() {
   if (role === 'parent') {
     const data = getStoredProfileState('ilearn_parent_profile');
     const student = data.student || getStoredProfileState('ilearn_parent_student');
-    const monthAtt = data.report?.attendanceSummary?.month || data.report?.attendance || data.attendance || {};
+    const report = data.report || data;
+    const monthAtt = report?.attendanceSummary?.month || report?.attendance || {};
     const present = Number(monthAtt.present || 0);
     const total = Number(monthAtt.total || 0);
     const percentage = total ? Math.round((present / total) * 1000) / 10 : 0;
@@ -673,24 +673,25 @@ async function refreshParentDashboard() {
   if (!hasActiveParentSession()) return;
   try {
     const profile = await API.getParentReport();
- 
-    // Store everything in localStorage for offline/cached access
+
+    // Store in localStorage for offline/cached access and nav profile
     localStorage.setItem('ilearn_parent_profile', JSON.stringify(profile));
     localStorage.setItem('ilearn_parent_student', JSON.stringify(profile.student || {}));
- 
+
+    // The API returns data at top level AND inside report — normalise both
     const report = profile.report || profile;
     const student = profile.student || {};
- 
-    // Make sure widgets exist before injecting data
+
+    // Ensure extra widgets are created before injecting
     if (typeof ensureParentExtraWidgets === 'function') {
       ensureParentExtraWidgets();
     }
- 
-    // Inject all parent tab data (attendance, fees, MCQ, weekly tests, topics, papers)
+
+    // Inject ALL parent tab data in one call
     if (typeof injectParentTabData === 'function') {
       injectParentTabData(report, student);
     }
- 
+
     renderNavProfile();
   } catch (err) {
     console.warn('Parent dashboard refresh failed:', err.message || err);
@@ -710,8 +711,9 @@ async function refreshRoleData() {
         console.warn('Timetable refresh skipped:', innerErr.message || innerErr);
       }
     } else if (role === 'parent') {
+      // refreshParentDashboard handles full parent data refresh
       await refreshParentDashboard();
-      return; // refreshParentDashboard handles everything including updateDashboardAttendanceCards
+      return;
     } else if (role === 'teacher') {
       const teacher = JSON.parse(localStorage.getItem('ilearn_teacher') || '{}');
       localStorage.setItem('ilearn_teacher', JSON.stringify(teacher));
@@ -722,7 +724,6 @@ async function refreshRoleData() {
   updateDashboardAttendanceCards();
   renderTodayTimetableReminder();
 }
- 
 
 // ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
 function setElementText(id, value) {
@@ -773,27 +774,27 @@ function renderTodayTimetableReminder() {
     return '<div class="tt-slot"><div class="tt-dot" style="background:' + getTimetableSlotClass(slot.type) + '"></div><div class="tt-time">' + time + '</div><div>' + topic + type + '</div></div>';
   }).join('');
 }
- 
+
 function updateDashboardAttendanceCards() {
   const now = new Date();
   const role = getCurrentRole();
- 
+
   const studentProfile = getStoredProfileState('ilearn_student_profile');
   const studentStored = getStoredProfileState('ilearn_student');
   const parentProfile = getStoredProfileState('ilearn_parent_profile');
   const parentStored = getStoredProfileState('ilearn_parent_student');
   const teacherStored = getStoredProfileState('ilearn_teacher');
- 
+
   const welcomeName = role === 'student'
     ? (studentProfile.student?.name || studentStored.name || 'Student')
     : (role === 'parent'
       ? (parentProfile.student?.name || parentStored.name || 'Parent')
       : (role === 'teacher' ? (teacherStored.name || 'Teacher') : 'Learner'));
- 
+
   setElementText('dashboardWelcomeName', welcomeName || 'Learner');
   setElementText('dashboardWelcomeRole', role ? `Signed in as ${role}` : 'Sign in to view your dashboard');
   setUpdatedLabel('dashboardWelcomeUpdated', now);
- 
+
   // ── Student attendance ──
   const studentMonth = studentProfile.attendanceSummary?.month || null;
   const studentOverall = studentProfile.attendanceSummary?.overall || null;
@@ -807,53 +808,26 @@ function updateDashboardAttendanceCards() {
       : 'Attendance will appear here once your teacher starts marking it.');
   }
   setUpdatedLabel('studentAttendanceUpdated', now);
- 
+
   const streakValue = Number(studentProfile.mcqStreak || 0);
   setElementText('studentStreakValue', streakValue + ' day' + (streakValue === 1 ? '' : 's'));
   setUpdatedLabel('studentStreakUpdated', now);
- 
-  // ── Parent: push all data through injectParentTabData ──
-  // This handles attendance, fees, MCQ, weekly tests, topics, papers in one place
-  const report = parentProfile.report || parentProfile;
-  const parentStudent = parentProfile.student || parentStored;
- 
-  // Always update the two existing HTML cards directly as well (belt-and-suspenders)
-  const parentMonth = report?.attendanceSummary?.month || report?.attendance || null;
-  const parentOverall = report?.attendanceSummary?.overall || parentMonth;
- 
-  if (parentMonth !== null || parentStudent?.name) {
-    setElementText('parentAttendanceMonth', `${parentMonth?.present || 0} / ${parentMonth?.total || 0} days`);
-    setElementText('parentAttendanceOverall', `${parentOverall?.percentage || 0}%`);
-    setElementText('parentAttendanceStudent', parentStudent?.name || 'Linked student');
-    setElementText('parentAttendanceProgressLabel', `${parentOverall?.percentage || 0}%`);
-    setElementWidth('parentAttendanceProgress', `${Math.max(0, Math.min(100, Number(parentOverall?.percentage || 0)))}%`);
-    setUpdatedLabel('parentAttendanceUpdated', now);
-  }
- 
-  const feeSummary = report?.feeSummary || null;
-  const studentClass = parentStudent?.class || '';
-  setElementText('parentFeeBatch', studentClass ? `Class ${studentClass}` : 'Linked batch');
-  if (feeSummary) {
-    const pendingAmt = Number(feeSummary.pending || 0);
-    setElementText('parentFeeStatus', pendingAmt > 0 ? `Rs ${pendingAmt} pending` : 'Paid up');
-    setElementText('parentFeePaid', `Rs ${feeSummary.totalPaid || 0}`);
-    setElementText('parentFeePending', `Rs ${feeSummary.pending || 0}`);
-  } else {
-    setElementText('parentFeeStatus', 'No fee entries yet');
-    setElementText('parentFeePaid', 'Rs 0');
-    setElementText('parentFeePending', 'Rs 0');
-  }
-  setUpdatedLabel('parentFeeUpdated', now);
- 
-  // Push MCQ, weekly tests, topic, paper, weak/strong data too
-  if (role === 'parent' && typeof injectParentTabData === 'function') {
+
+  // ── Parent dashboard: use injectParentTabData for ALL parent widgets ──
+  if (role === 'parent') {
+    // Get the full cached report — support both top-level and nested shapes
+    const fullReport = parentProfile.report || parentProfile;
+    const parentStudent = parentProfile.student || parentStored;
+
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
-    injectParentTabData(report, parentStudent);
+    if (typeof injectParentTabData === 'function') {
+      injectParentTabData(fullReport, parentStudent);
+    }
   }
- 
+
   renderTodayTimetableReminder();
 }
- 
+
 function updateHomeForSession() {
   const role = getCurrentRole();
   const studentOnly = document.querySelectorAll('.role-student-only');
@@ -866,26 +840,26 @@ function updateHomeForSession() {
   const parentContent = document.getElementById('tab-parent');
   const teacherContent = document.getElementById('tab-teacher');
   const teacherHiddenSections = [document.getElementById('assessment'), document.getElementById('ai-features')];
- 
+
   studentOnly.forEach((el) => { el.style.display = !role || role === 'student' ? '' : 'none'; });
   parentOnly.forEach((el) => { el.style.display = !role || role === 'parent' ? '' : 'none'; });
   teacherOnly.forEach((el) => { el.style.display = role === 'teacher' ? '' : 'none'; });
   teacherHiddenSections.forEach((section) => { if (section) section.style.display = role === 'teacher' ? 'none' : ''; });
- 
+
   if (role === 'student') {
     studentTab?.classList.add('active'); parentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
     studentContent?.classList.add('active'); parentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
   } else if (role === 'parent') {
     parentTab?.classList.add('active'); studentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
     parentContent?.classList.add('active'); studentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
-    // Ensure parent extra widgets exist immediately on tab activation
+    // Create extra widgets before data arrives
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
   } else if (role === 'teacher') {
     teacherTab?.classList.add('active'); studentTab?.classList.remove('active'); parentTab?.classList.remove('active');
     if (teacherContent) { teacherContent.classList.add('active'); teacherContent.style.display = 'block'; }
     studentContent?.classList.remove('active'); parentContent?.classList.remove('active');
   }
- 
+
   renderNavProfile();
   updateAuthRequiredState();
   updateDashboardAttendanceCards();
@@ -1414,18 +1388,19 @@ async function renderDailyMcqs(role) {
 // ── PAGE LOAD ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   renderTeacherMcqCards();
- 
+
   const role = getCurrentRole();
- 
+
   if (role === 'student') {
     await refreshRoleData();
     updateHomeForSession();
     loadStudentResources();
     loadStudentDoubts();
   } else if (role === 'parent') {
-    // Ensure widgets exist before any data arrives
+    // Create widgets first so they exist when data arrives
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
     updateHomeForSession();
+    // refreshParentDashboard fetches live data and calls injectParentTabData
     await refreshParentDashboard();
     loadStudentResources();
   } else if (role === 'teacher') {
