@@ -38,23 +38,23 @@ function ensureParentExtraWidgets() {
   }
 }
 // ============================================
-//   I LEARN ACADEMY Ã¢â‚¬â€ main.js (Complete Final)
+//   I LEARN ACADEMY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â main.js (Complete Final)
 // ============================================
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ 1. SCROLL ANIMATIONS
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ 1. SCROLL ANIMATIONS
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.12 });
 document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ 2. STICKY NAVBAR
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ 2. STICKY NAVBAR
 window.addEventListener('scroll', () => {
   const nav = document.getElementById('navbar');
   if (nav) nav.style.background = window.scrollY > 50
     ? 'rgba(13,13,26,0.98)' : 'rgba(13,13,26,0.88)';
 });
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ 3. MOBILE MENU
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ 3. MOBILE MENU
 function toggleMenu() {
   const links = document.querySelector('.nav-links');
   if (!links) return;
@@ -73,7 +73,7 @@ function toggleMenu() {
   }
 }
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ 4. DASHBOARD TABS
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ 4. DASHBOARD TABS
 function switchTab(tab, el) {
   document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.dash-content').forEach(c => c.classList.remove('active'));
@@ -85,9 +85,9 @@ function switchTab(tab, el) {
   }
 }
  
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 //   LOGIN MODAL
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function openLoginModal() {
   document.getElementById('loginModal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -254,7 +254,7 @@ function setLoginType(type) {
   resetParentOTP();
 }
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ STUDENT LOGIN: Email + Password
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STUDENT LOGIN: Email + Password
 function flashInput(id, msg) {
   const el = document.getElementById(id);
   if (el) {
@@ -265,94 +265,11 @@ function flashInput(id, msg) {
   alert(msg);
 }
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ PARENT LOGIN: Mobile OTP flow
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PARENT LOGIN: Mobile OTP flow
 let parentOTP = null;
 let parentMobile = null;
 let currentLoginType = 'student';
  
-function sendParentOTP() {
-  const raw    = (document.getElementById('lp-mobile')?.value || '').trim();
-  const digits = raw.replace(/\D/g, '');
- 
-  if (digits.length < 10) {
-    flashInput('lp-mobile', 'Please enter a valid 10-digit mobile number.');
-    return;
-  }
- 
-  parentMobile = raw;
-  parentOTP    = '1234'; // Demo OTP Ã¢â‚¬â€ replace with real SMS API in production
- 
-  // Check if this number matches any registered student
-  const stored       = JSON.parse(localStorage.getItem('ilearn_student') || '{}');
-  const storedDigits = (stored.mobile || '').replace(/\D/g, '');
-  const matched      = storedDigits.length >= 10 &&
-    storedDigits.slice(-10) === digits.slice(-10);
- 
-  // Show OTP step
-  document.getElementById('parentStep-mobile').style.display = 'none';
-  document.getElementById('parentStep-otp').style.display    = 'flex';
-  document.getElementById('parentStep-otp').style.flexDirection = 'column';
-  document.getElementById('parentMobileDisplay').textContent  = raw;
- 
-  const info = matched
-    ? 'OTP sent to ' + raw + ' \u2705\nStudent found: ' + (stored.name || 'Your child') +
-      ' (Class ' + (stored.cls || '?') + ')\n\n(Demo OTP: 1234)'
-    : 'OTP sent to ' + raw + ' \u2705\n\n(Demo OTP: 1234)\n\nNo registration found for this number Ã¢â‚¬â€ in production this matches against the academy database.';
- 
-  setTimeout(() => alert(info), 80);
-}
- 
-function verifyParentOTP() {
-  const entered = (document.getElementById('lp-otp')?.value || '').trim();
-  const errEl   = document.getElementById('parentOTPError');
- 
-  // Clear previous error
-  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
- 
-  if (!entered) {
-    showOTPError('Please enter the 4-digit OTP.');
-    return;
-  }
-  if (entered !== parentOTP) {
-    showOTPError('\u274C Incorrect OTP. Please check and try again. (Demo OTP is 1234)');
-    const input = document.getElementById('lp-otp');
-    if (input) { input.style.borderColor = '#FF2D78'; setTimeout(() => input.style.borderColor = '', 2500); }
-    return;
-  }
- 
-  // OTP correct Ã¢â‚¬â€ match against student
-  const stored       = JSON.parse(localStorage.getItem('ilearn_student') || '{}');
-  const storedDigits = (stored.mobile || '').replace(/\D/g, '');
-  const enteredDigits = (parentMobile || '').replace(/\D/g, '');
-  const matched      = storedDigits.length >= 10 &&
-    storedDigits.slice(-10) === enteredDigits.slice(-10);
- 
-  // Save auth state
-  localStorage.setItem('ilearn_parent_auth', JSON.stringify({
-    verified:     true,
-    mobile:       parentMobile,
-    studentName:  matched ? (stored.name  || 'Your Child') : 'Sample Student',
-    studentClass: matched ? (stored.cls   || '')           : ''
-  }));
- 
-  closeLoginModal();
- 
-  if (matched && stored.name) {
-    alert(
-      'OTP verified! \u2705\n\n' +
-      'Student found: ' + stored.name + ' (Class ' + stored.cls + ')\n' +
-      'Redirecting to ' + stored.name + '\u2019s progress report...'
-    );
-  } else {
-    alert(
-      'OTP verified! \u2705\n\n' +
-      'No registered student found for this number.\n' +
-      '(In production this matches the academy\u2019s database)\n\n' +
-      'Opening sample parent report...'
-    );
-  }
-  setTimeout(() => window.location.href = 'ai-parentreport.html', 800);
-}
  
 function showOTPError(msg) {
   const errEl = document.getElementById('parentOTPError');
@@ -528,7 +445,7 @@ function syncRegisterSubjectVisibility() {
 const regClassField = document.getElementById('regClass');
 if (regClassField) regClassField.addEventListener('change', syncRegisterSubjectVisibility);
  
-// Ã¢â€â‚¬Ã¢â€â‚¬ CLASS-SPECIFIC QUESTIONS
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CLASS-SPECIFIC QUESTIONS
 const classQuestions = {
   '9': [
     { q:'Which of the following is an irrational number?',          opts:['&radic;4','&radic;9','&radic;2','&radic;16'],                             ans:2, topic:'Real Numbers' },
@@ -635,7 +552,7 @@ function renderQuestion() {
   document.getElementById('qPct').textContent        = pct + '%';
   document.getElementById('qProgFill').style.width   = pct + '%';
   document.getElementById('prevBtn').style.display   = currentQ > 0 ? 'inline-block' : 'none';
-  document.getElementById('nextBtn').textContent     = currentQ === total - 1 ? 'Submit Ã¢Å“Â¨' : 'Next Ã¢â€ â€™';
+  document.getElementById('nextBtn').textContent     = currentQ === total - 1 ? 'Submit ÃƒÂ¢Ã…â€œÃ‚Â¨' : 'Next ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢';
  
   const sel = assessAnswers[currentQ];
   document.getElementById('questionArea').innerHTML = `
@@ -728,9 +645,9 @@ function showResult() {
   showRegStep(3);
 }
  
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 //   AI CHATBOT
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 const chatHistory = [];
  
 async function sendChat() {
@@ -1028,7 +945,7 @@ function updateDashboardAttendanceCards() {
   const studentMcqSet = studentProfile.dailyMcqSet || {};
   const studentMcqQuestions = Array.isArray(studentMcqSet.questions) ? studentMcqSet.questions : [];
   const studentMcqText = studentMcqSet.batchTitle
-    ? `${studentMcqSet.batchTitle} â€¢ ${studentMcqQuestions.length} question(s)`
+    ? `${studentMcqSet.batchTitle} Ã¢â‚¬Â¢ ${studentMcqQuestions.length} question(s)`
     : 'No active MCQ batch yet.';
   setElementText('studentMcqSummaryDashboard', studentMcqText);
   setUpdatedLabel('studentMcqUpdated', now);
@@ -1086,7 +1003,7 @@ function updateDashboardAttendanceCards() {
   const lastPaidRow = document.getElementById('parentFeeLastPaid');
   if (lastPaidRow) {
     const valueNode = lastPaidRow.querySelector('.metric-value');
-    if (valueNode) valueNode.textContent = lastPaid || 'â€”';
+    if (valueNode) valueNode.textContent = lastPaid || 'Ã¢â‚¬â€';
   }
 }
 
@@ -1324,7 +1241,7 @@ function renderTeacherPaperList(papers) {
     <div style="padding:${index ? '16px 0 0' : '0'};margin-top:${index ? '16px' : '0'};border-top:${index ? '1px solid rgba(255,255,255,0.06)' : 'none'};display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
         <div style="font-weight:700;">${paper.title}</div>
-        <div style="color:var(--muted);font-size:0.84rem;margin-top:4px;">Class ${paper.class_scope || 'all'} Ã¯Â¿Â½ ${paper.resource_type || 'document'} Ã¯Â¿Â½ ${paper.posted_at || ''}</div>
+        <div style="color:var(--muted);font-size:0.84rem;margin-top:4px;">Class ${paper.class_scope || 'all'} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${paper.resource_type || 'document'} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${paper.posted_at || ''}</div>
       </div>
       <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open</a>
     </div>
@@ -1376,7 +1293,7 @@ function renderTeacherWeeklyTestTable(students) {
       <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Class ${student.class}</td>
       <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="number" min="0" id="weekly-marks-${student.id}" placeholder="Marks" style="width:120px;" /></td>
       <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="text" id="weekly-note-${student.id}" placeholder="Optional note" style="width:100%;" /></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.latestWeeklyTest ? `${student.latestWeeklyTest.title} Ã¯Â¿Â½ ${student.latestWeeklyTest.marks_obtained}/${student.latestWeeklyTest.total_marks}` : 'No entry yet'}</td>
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.latestWeeklyTest ? `${student.latestWeeklyTest.title} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${student.latestWeeklyTest.marks_obtained}/${student.latestWeeklyTest.total_marks}` : 'No entry yet'}</td>
     </tr>
   `).join('');
 }
@@ -1664,7 +1581,7 @@ async function renderQuestionPapers(role) {
       `<div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:center;">
         <div>
           <div style="font-weight:700;">${paper.title}</div>
-          <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Class ${paper.class_scope || 'all'} Ã¯Â¿Â½ ${paper.resource_type || 'document'} Ã¯Â¿Â½ ${paper.posted_at || ''}</div>
+          <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Class ${paper.class_scope || 'all'} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${paper.resource_type || 'document'} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${paper.posted_at || ''}</div>
         </div>
         <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open</a>
       </div>`
@@ -1697,7 +1614,7 @@ async function renderDailyMcqs(role) {
 
     const mcqs = data.mcqs || [];
     summary.textContent = data.batchTitle
-      ? `${data.batchTitle} Ã¯Â¿Â½ ${mcqs.length} question(s)${data.availableUntil ? ' Ã¯Â¿Â½ ends ' + data.availableUntil : ''}`
+      ? `${data.batchTitle} ÃƒÂ¯Ã‚Â¿Ã‚Â½ ${mcqs.length} question(s)${data.availableUntil ? ' ÃƒÂ¯Ã‚Â¿Ã‚Â½ ends ' + data.availableUntil : ''}`
       : 'No active MCQ batch yet.';
 
     const summaryDashboard = document.getElementById('studentMcqSummaryDashboard');
@@ -1743,7 +1660,6 @@ async function renderDailyMcqs(role) {
     list.innerHTML = '';
   }
 }
-
 
 
 
