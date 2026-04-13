@@ -372,7 +372,7 @@ function buildDemoTimetable(student, payload) {
   const weakFocus = weakTopics.map((topic, index) => ({
     topic,
     extraSessions: Math.max(2, (urgency === 'high' ? 3 : 2) + (index < confidenceBoost ? 1 : 0)),
-    reason: 'Mathi is repeating this topic more often because it was marked as weak and needs confidence-building practice.'
+    reason: 'Mathi is repeating this topic more often because it was marked as weak.'
   }));
   let pointer = 0;
   availableDays.forEach((day, dayIndex) => {
@@ -575,7 +575,7 @@ db.exec(`
   );
 `);
 
-// Safe column additions — IF NOT EXISTS prevents errors on redeploy
+// Safe column additions
 [
   "ALTER TABLE students  ADD COLUMN IF NOT EXISTS google_sub       TEXT",
   "ALTER TABLE students  ADD COLUMN IF NOT EXISTS subject          TEXT DEFAULT 'maths'",
@@ -585,11 +585,31 @@ db.exec(`
   "ALTER TABLE daily_mcqs ADD COLUMN IF NOT EXISTS question_no     INTEGER DEFAULT 1",
   "ALTER TABLE daily_mcqs ADD COLUMN IF NOT EXISTS available_until TIMESTAMP",
   "ALTER TABLE daily_mcqs ADD COLUMN IF NOT EXISTS question_image  TEXT",
-].forEach((sql) => { try { db.prepare(sql).run(); } catch (e) { /* already exists — ignore */ } });
+].forEach((sql) => { try { db.prepare(sql).run(); } catch (e) { /* already exists */ } });
 
-// Partial unique indexes for nullable google_sub
-try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_students_google_sub ON students (google_sub) WHERE google_sub IS NOT NULL'); } catch (e) { /* ignore */ }
-try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_google_sub ON teachers (google_sub) WHERE google_sub IS NOT NULL'); } catch (e) { /* ignore */ }
+// ── Partial unique indexes — run directly via pg pool to bypass convertSql ──
+// We use a raw pool query to avoid the worker's regex stripping the WHERE clause
+(async () => {
+  const { Pool } = require('pg');
+  if (!process.env.DATABASE_URL) return;
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false }
+  });
+  const idxStatements = [
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_students_google_sub ON students (google_sub) WHERE google_sub IS NOT NULL`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_google_sub ON teachers (google_sub) WHERE google_sub IS NOT NULL`
+  ];
+  for (const stmt of idxStatements) {
+    try { await pool.query(stmt); }
+    catch (e) {
+      if (!e.message.includes('already exists') && !e.message.includes('42P07')) {
+        console.warn('[partial index]', e.message);
+      }
+    }
+  }
+  await pool.end();
+})();
 
 seedDefaultTeacher();
 refreshSheets();
@@ -850,6 +870,7 @@ app.post('/api/parent/google-login', async (req, res) => {
   }
 });
 
+// ── PARENT REPORT — fixed response shape so dashboard-auth.js gets all fields ──
 app.get('/api/parent/report', authParent, (req, res) => {
   try { syncAttendanceFromSheet(); } catch (e) { /* ignore */ }
   const { studentId } = req.parent;
@@ -872,17 +893,33 @@ app.get('/api/parent/report', authParent, (req, res) => {
   const weakTopics   = latestAssessment ? JSON.parse(latestAssessment.weak_topics   || '[]') : [];
   const strongTopics = latestAssessment ? JSON.parse(latestAssessment.strong_topics || '[]') : [];
   const recentMcqs   = (dailyMcqSet.questions || []).filter((item) => item.selected_index !== null && item.selected_index !== undefined);
-  const payload = {
-    student, latestAssessment, latestTimetable, assessmentHistory: assessments,
+
+  // Build the full data object — this is BOTH the report and the top-level response
+  // so dashboard-auth.js can find data at either report.X or response.X
+  const fullData = {
+    student,
+    latestAssessment,
+    latestTimetable,
+    assessmentHistory: assessments,
     latestScore: Number(latestAssessment?.score) || 0,
     latestTotal: Number(latestAssessment?.total) || 0,
     attendance: monthAttendance,
     totalAttendance: { total: monthAttendance.total },
     attendanceSummary: { month: monthAttendance, overall: overallAttendance },
-    topicScores, weakTopics, strongTopics, weeklySummary, recentMcqs,
-    dailyMcqSet, questionPapers, weeklyTests, feeSummary, mcqStreak
+    topicScores,
+    weakTopics,
+    strongTopics,
+    weeklySummary,
+    recentMcqs,
+    dailyMcqSet,
+    questionPapers,
+    weeklyTests,
+    feeSummary,
+    mcqStreak
   };
-  res.json({ student, report: payload, ...payload });
+
+  // Return both at top level AND nested under report — dashboard-auth.js checks both
+  res.json({ ...fullData, report: fullData });
 });
 
 app.post('/api/parent/ai-report', authParent, async (req, res) => {
@@ -1405,41 +1442,12 @@ app.get('/api/debug/students-count', (req, res) => {
 
 app.get('/api/debug/teacher-students', (req, res) => {
   try {
-    const selectedDate = String(req.query.date || '').trim();
-    const students     = db.prepare('SELECT id, name, email, class, subject, approval_status, mobile, board, created_at FROM students ORDER BY class, name').all();
-    const attendanceByStudent = db.prepare("SELECT student_id, SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) AS presentCount, COUNT(*) AS totalCount FROM attendance GROUP BY student_id").all();
-    const attendanceMap = new Map(attendanceByStudent.map((row) => [row.student_id, row]));
-    const attendanceForDate = selectedDate ? db.prepare('SELECT student_id, status FROM attendance WHERE date=?').all(selectedDate) : [];
-    const statusMap   = new Map(attendanceForDate.map((row) => [row.student_id, row.status]));
-    const feePayments = db.prepare('SELECT student_id, amount_paid, paid_on, created_at FROM fee_payments ORDER BY paid_on DESC, created_at DESC').all();
-    const feePaymentsMap = new Map();
-    feePayments.forEach((p) => { const list = feePaymentsMap.get(p.student_id) || []; list.push(p); feePaymentsMap.set(p.student_id, list); });
-    const latestWeeklyTests = db.prepare(`
-      SELECT student_id, title, test_date, marks_obtained, total_marks
-      FROM (SELECT student_id, title, test_date, marks_obtained, total_marks,
-                   ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY test_date DESC, created_at DESC) AS row_num
-            FROM weekly_tests) t WHERE row_num=1
-    `).all();
-    const latestWeeklyTestMap = new Map(latestWeeklyTests.map((t) => [t.student_id, t]));
-    res.json({
-      status: 'ok', selectedDate: selectedDate || null, totalStudents: students.length,
-      students: students.map((student) => {
-        const stats = attendanceMap.get(student.id) || { presentCount: 0, totalCount: 0 };
-        const tc = Number(stats.totalCount) || 0, pc = Number(stats.presentCount) || 0;
-        const payments  = feePaymentsMap.get(student.id) || [];
-        const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount_paid) || 0), 0);
-        const totalDue  = getClassFeeTarget(student.class);
-        return { ...student, approvalStatus: String(student.approval_status || 'accepted').toLowerCase(),
-          currentStatus: statusMap.get(student.id) || null,
-          attendance:    { present: pc, total: tc, percentage: tc ? Math.round((pc/tc)*1000)/10 : 0 },
-          feeSummary:    { totalDue, totalPaid: Math.round(totalPaid*100)/100, pending: Math.max(0,Math.round((totalDue-totalPaid)*100)/100), payments },
-          latestWeeklyTest: latestWeeklyTestMap.get(student.id) || null };
-      })
-    });
-  } catch (error) { res.status(500).json({ status: 'error', error: error.message || 'Could not build teacher student snapshot.' }); }
+    const students = db.prepare('SELECT id, name, email, class, subject, approval_status, mobile, board, created_at FROM students ORDER BY class, name').all();
+    res.json({ status: 'ok', totalStudents: students.length, students });
+  } catch (error) { res.status(500).json({ status: 'error', error: error.message }); }
 });
 
-// ── IMPORTANT: Catch-all for unknown /api/* routes → return JSON not HTML ──
+// Catch-all for unknown /api/* routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API route not found: ' + req.path });
 });
@@ -1455,30 +1463,5 @@ app.listen(PORT, () => {
 ╠═══════════════════════════════════════════╣
 ║  Database:    ${USING_POSTGRES ? 'PostgreSQL' : 'SQLite    '}                  ║
 ╚═══════════════════════════════════════════╝
-
-Routes ready:
-  POST /api/student/register
-  POST /api/student/login
-  GET  /api/student/profile
-  POST /api/parent/send-otp
-  POST /api/parent/verify-otp
-  GET  /api/parent/report
-  POST /api/assessment/submit
-  GET  /api/assessment/history
-  POST /api/chat/message
-  GET  /api/chat/history/:key
-  POST /api/timetable/generate
-  GET  /api/timetable/latest
-  GET  /api/teacher/students
-  POST /api/teacher/attendance
-  GET  /api/teacher/mcqs
-  POST /api/teacher/mcqs
-  POST /api/teacher/fees
-  POST /api/teacher/weekly-tests
-  GET  /api/teacher/doubts
-  POST /api/teacher/doubts/:id/answer
-  GET  /api/attendance/:id
-  GET  /api/health
   `);
 });
-
