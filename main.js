@@ -11,50 +11,21 @@ function clearLoginError() {
   el.textContent = '';
   el.style.display = 'none';
 }
-function ensureParentExtraWidgets() {
-  const parentTab = document.getElementById("tab-parent");
-  if (!parentTab) return;
-  if (!document.getElementById("parentWeeklyTests")) {
-    const weekly = document.createElement("div");
-    weekly.className = "dash-widget";
-    weekly.innerHTML = "<h4>&#128203; Weekly Test Marks</h4><div id=\"parentWeeklyTests\">Weekly test marks will appear here once teachers enter them.</div>";
-    parentTab.appendChild(weekly);
-  }
-  if (!document.getElementById("parentMcqSummary")) {
-    const mcq = document.createElement("div");
-    mcq.className = "dash-widget";
-    mcq.innerHTML = "<h4>&#128221; Daily MCQ Performance</h4><div id=\"parentMcqSummary\">Daily MCQ summary will appear here.</div><div id=\"parentMcqList\"></div>";
-    parentTab.appendChild(mcq);
-  }
-  if (!document.getElementById("parentFeeLastPaid")) {
-    const feeStatus = document.getElementById("parentFeeStatus");
-    if (feeStatus && feeStatus.parentElement) {
-      const lastPaid = document.createElement("div");
-      lastPaid.id = "parentFeeLastPaid";
-      lastPaid.className = "metric-row";
-      lastPaid.innerHTML = "<span class=\"metric-label\">Last Paid</span><span class=\"metric-value\">-</span>";
-      feeStatus.parentElement.appendChild(lastPaid);
-    }
-  }
-}
-// ============================================
-//   I LEARN ACADEMY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â main.js (Complete Final)
-// ============================================
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 1. SCROLL ANIMATIONS
+
+// ── 1. SCROLL ANIMATIONS ──────────────────────────────────────────────────────
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.12 });
 document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 2. STICKY NAVBAR
+
+// ── 2. STICKY NAVBAR ──────────────────────────────────────────────────────────
 window.addEventListener('scroll', () => {
   const nav = document.getElementById('navbar');
   if (nav) nav.style.background = window.scrollY > 50
     ? 'rgba(13,13,26,0.98)' : 'rgba(13,13,26,0.88)';
 });
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 3. MOBILE MENU
+
+// ── 3. MOBILE MENU ────────────────────────────────────────────────────────────
 function toggleMenu() {
   const links = document.querySelector('.nav-links');
   if (!links) return;
@@ -63,22 +34,27 @@ function toggleMenu() {
     links.style.display = 'none';
   } else {
     Object.assign(links.style, {
-      display:'flex', flexDirection:'column', position:'absolute',
-      top:'65px', left:'0', right:'0',
-      background:'rgba(13,13,26,0.98)',
-      padding:'20px 24px',
-      borderTop:'1px solid rgba(255,255,255,0.07)',
-      zIndex:'999'
+      display: 'flex', flexDirection: 'column', position: 'absolute',
+      top: '65px', left: '0', right: '0',
+      background: 'rgba(13,13,26,0.98)',
+      padding: '20px 24px',
+      borderTop: '1px solid rgba(255,255,255,0.07)',
+      zIndex: '999'
     });
   }
 }
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 4. DASHBOARD TABS
+
+// ── 4. DASHBOARD TABS ─────────────────────────────────────────────────────────
 function switchTab(tab, el) {
   document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.dash-content').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('tab-' + tab)?.classList.add('active');
+  const tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) {
+    tabEl.classList.add('active');
+    tabEl.style.display = tab === 'teacher' ? 'block' : '';
+  }
+
   if (tab === 'teacher' && hasActiveTeacherSession()) {
     refreshRoleData();
     loadTeacherAttendance();
@@ -90,21 +66,18 @@ function switchTab(tab, el) {
       loadStudentDoubts();
     });
   } else if (tab === 'parent' && hasActiveParentSession()) {
-    refreshRoleData().then(() => {
-      loadStudentResources();
-    });
+    refreshParentDashboard();
   }
 }
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
-//   LOGIN MODAL
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+
+// ── LOGIN MODAL ───────────────────────────────────────────────────────────────
 function openLoginModal() {
   document.getElementById('loginModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   resetParentOTP();
   updateAuthRequiredState();
 }
+
 function openDoubtModal() {
   const modal = document.getElementById('doubtModal');
   const msg = document.getElementById('doubtSubmitMessage');
@@ -112,6 +85,7 @@ function openDoubtModal() {
   if (modal) modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 function closeDoubtModal() {
   const modal = document.getElementById('doubtModal');
   if (modal) modal.classList.remove('open');
@@ -121,6 +95,7 @@ function closeDoubtModal() {
   if (q) q.value = '';
   if (i) i.value = '';
 }
+
 async function submitStudentDoubt() {
   const text = (document.getElementById('doubtQuestionText')?.value || '').trim();
   const image = (document.getElementById('doubtQuestionImage')?.value || '').trim();
@@ -138,6 +113,7 @@ async function submitStudentDoubt() {
     if (msg) { msg.textContent = err.message || 'Could not submit doubt.'; msg.style.display = 'block'; }
   }
 }
+
 function closeLoginModal() {
   document.getElementById('loginModal').classList.remove('open');
   document.body.style.overflow = '';
@@ -145,12 +121,7 @@ function closeLoginModal() {
 
 function getStudentDashboardPath(student) {
   const cls = String(student?.class || student?.cls || '').trim();
-  const dashboards = {
-    '9': 'class9.html',
-    '10': 'class10.html',
-    '11': 'class11.html',
-    '12': 'class12.html'
-  };
+  const dashboards = { '9': 'class9.html', '10': 'class10.html', '11': 'class11.html', '12': 'class12.html' };
   return dashboards[cls] || 'index.html';
 }
 
@@ -162,7 +133,6 @@ function redirectToStudentDashboard(student) {
       loadStudentResources();
       loadStudentDoubts();
     });
-    if (hasActiveTeacherSession()) loadTeacherDoubts();
     const studentTab = document.getElementById('studentDashTab');
     if (studentTab) switchTab('student', studentTab);
     document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
@@ -175,10 +145,7 @@ function redirectToParentDashboard() {
   const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
   if (isHome) {
     updateHomeForSession();
-    refreshRoleData().then(() => {
-      loadStudentResources();
-    });
-    if (hasActiveTeacherSession()) loadTeacherDoubts();
+    refreshParentDashboard();
     const parentTab = document.getElementById('parentDashTab');
     if (parentTab) switchTab('parent', parentTab);
     document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
@@ -206,21 +173,10 @@ function redirectToTeacherDashboard() {
   window.location.href = 'index.html#dashboards';
 }
 
-function hasActiveStudentSession() {
-  return !!localStorage.getItem('ilearn_token');
-}
-
-function hasActiveParentSession() {
-  return !!localStorage.getItem('ilearn_parent_token');
-}
-
-function hasActiveTeacherSession() {
-  return !!localStorage.getItem('ilearn_teacher_token');
-}
-
-function redirectAuthenticatedUser() {
-  return hasActiveStudentSession() || hasActiveParentSession() || hasActiveTeacherSession();
-}
+function hasActiveStudentSession() { return !!localStorage.getItem('ilearn_token'); }
+function hasActiveParentSession() { return !!localStorage.getItem('ilearn_parent_token'); }
+function hasActiveTeacherSession() { return !!localStorage.getItem('ilearn_teacher_token'); }
+function redirectAuthenticatedUser() { return hasActiveStudentSession() || hasActiveParentSession() || hasActiveTeacherSession(); }
 
 function toggleProfileMenu() {
   const panel = document.getElementById('profilePanel');
@@ -237,14 +193,11 @@ function updateAuthRequiredState() {
 async function loginStudentWithPassword() {
   const email = (document.getElementById('ls-email')?.value || '').trim();
   const password = (document.getElementById('ls-password')?.value || '').trim();
-
   clearLoginError();
-
   if (!email || !password) {
     showLoginError('Please enter your student email and password.');
     return;
   }
-
   try {
     const data = await API.loginStudent(email, password);
     closeLoginModal();
@@ -253,8 +206,7 @@ async function loginStudentWithPassword() {
     showLoginError(err.message || 'Student login failed');
   }
 }
- 
-// Switch Student / Parent tabs
+
 function setLoginType(type) {
   currentLoginType = type;
   const groups = {
@@ -267,15 +219,12 @@ function setLoginType(type) {
     node.style.display = key === type ? 'flex' : 'none';
     if (key === type) node.style.flexDirection = 'column';
   });
-
   ['student', 'parent', 'teacher'].forEach((key) => {
     document.getElementById('ltab-' + key)?.classList.toggle('active', key === type);
   });
-
   resetParentOTP();
 }
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ STUDENT LOGIN: Email + Password
+
 function flashInput(id, msg) {
   const el = document.getElementById(id);
   if (el) {
@@ -285,13 +234,12 @@ function flashInput(id, msg) {
   }
   alert(msg);
 }
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ PARENT LOGIN: Mobile OTP flow
+
+// ── PARENT OTP LOGIN ──────────────────────────────────────────────────────────
 let parentOTP = null;
 let parentMobile = null;
 let currentLoginType = 'student';
- 
- 
+
 function showOTPError(msg) {
   const errEl = document.getElementById('parentOTPError');
   if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
@@ -300,117 +248,69 @@ function showOTPError(msg) {
 async function sendParentOTP() {
   const raw = (document.getElementById('lp-mobile')?.value || '').trim();
   const digits = raw.replace(/\D/g, '');
-
-  if (digits.length < 10) {
-    flashInput('lp-mobile', 'Please enter a valid 10-digit mobile number.');
-    return;
-  }
-
+  if (digits.length < 10) { flashInput('lp-mobile', 'Please enter a valid 10-digit mobile number.'); return; }
   const sendBtn = document.querySelector('#parentStep-mobile .btn-primary');
-  if (sendBtn) {
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending OTP...';
-  }
-
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending OTP...'; }
   try {
     const data = await API.sendParentOTP(raw);
     parentMobile = raw;
     parentOTP = null;
-
     document.getElementById('parentStep-mobile').style.display = 'none';
     document.getElementById('parentStep-otp').style.display = 'flex';
     document.getElementById('parentStep-otp').style.flexDirection = 'column';
     document.getElementById('parentMobileDisplay').textContent = raw;
-
     const info = data.studentFound
-      ? 'OTP sent to ' + raw + ' \u2705\nStudent found: ' + (data.studentName || 'Your child') +
-        ' (Class ' + (data.studentClass || '?') + ')\n\nEnter the OTP received on this number.'
-      : 'OTP sent to ' + raw + ' \u2705\n\nEnter the OTP received on this number.';
-
+      ? `OTP sent to ${raw} ✅\nStudent found: ${data.studentName || 'Your child'} (Class ${data.studentClass || '?'})\n\nEnter the OTP received on this number.`
+      : `OTP sent to ${raw} ✅\n\nEnter the OTP received on this number.`;
     setTimeout(() => alert(info), 80);
   } catch (err) {
     showOTPError(err.message || 'Failed to send OTP. Please try again.');
   } finally {
-    if (sendBtn) {
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Send OTP \uD83D\uDCF1';
-    }
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP 📱'; }
   }
 }
 
 async function verifyParentOTP() {
   const entered = (document.getElementById('lp-otp')?.value || '').trim();
   const errEl = document.getElementById('parentOTPError');
-
-  if (errEl) {
-    errEl.style.display = 'none';
-    errEl.textContent = '';
-  }
-
-  if (!entered) {
-    showOTPError('Please enter the 4-digit OTP.');
-    return;
-  }
-
-  if (!parentMobile) {
-    showOTPError('Please request an OTP first.');
-    return;
-  }
-
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (!entered) { showOTPError('Please enter the 4-digit OTP.'); return; }
+  if (!parentMobile) { showOTPError('Please request an OTP first.'); return; }
   const verifyBtn = document.querySelector('#parentStep-otp .btn-primary');
-  if (verifyBtn) {
-    verifyBtn.disabled = true;
-    verifyBtn.textContent = 'Verifying...';
-  }
-
+  if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying...'; }
   try {
     const data = await API.verifyParentOTP(parentMobile, entered);
     closeLoginModal();
     parentOTP = null;
-
-    alert(
-      'OTP verified! \u2705\n\n' +
-      (data.message || 'Redirecting to parent dashboard...')
-    );
-    setTimeout(() => window.location.href = 'index.html', 800);
+    alert(`OTP verified! ✅\n\n${data.message || 'Redirecting to parent dashboard...'}`);
+    redirectToParentDashboard();
   } catch (err) {
     showOTPError(err.message || 'Incorrect OTP. Please try again.');
     const input = document.getElementById('lp-otp');
-    if (input) {
-      input.style.borderColor = '#FF2D78';
-      setTimeout(() => input.style.borderColor = '', 2500);
-    }
+    if (input) { input.style.borderColor = '#FF2D78'; setTimeout(() => input.style.borderColor = '', 2500); }
   } finally {
-    if (verifyBtn) {
-      verifyBtn.disabled = false;
-      verifyBtn.textContent = 'Verify & View Report \u2192';
-    }
+    if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & View Report →'; }
   }
 }
- 
+
 function resetParentOTP() {
-  parentOTP    = null;
+  parentOTP = null;
   parentMobile = null;
   const mobileStep = document.getElementById('parentStep-mobile');
-  const otpStep    = document.getElementById('parentStep-otp');
-  const errEl      = document.getElementById('parentOTPError');
-  const mInput     = document.getElementById('lp-mobile');
-  const oInput     = document.getElementById('lp-otp');
+  const otpStep = document.getElementById('parentStep-otp');
+  const errEl = document.getElementById('parentOTPError');
+  const mInput = document.getElementById('lp-mobile');
+  const oInput = document.getElementById('lp-otp');
   if (mobileStep) { mobileStep.style.display = 'flex'; mobileStep.style.flexDirection = 'column'; }
-  if (otpStep)    otpStep.style.display    = 'none';
-  if (errEl)      { errEl.style.display = 'none'; errEl.textContent = ''; }
-  if (mInput)     mInput.value = '';
-  if (oInput)     oInput.value = '';
+  if (otpStep) otpStep.style.display = 'none';
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (mInput) mInput.value = '';
+  if (oInput) oInput.value = '';
 }
 
 async function handleCredentialResponse(response) {
   clearLoginError();
-
-  if (!response?.credential) {
-    showLoginError('Google login failed. Please try again.');
-    return;
-  }
-
+  if (!response?.credential) { showLoginError('Google login failed. Please try again.'); return; }
   try {
     if (currentLoginType === 'teacher') {
       const data = await API.loginTeacherWithGoogle(response.credential);
@@ -419,14 +319,12 @@ async function handleCredentialResponse(response) {
       redirectToTeacherDashboard();
       return;
     }
-
     if (currentLoginType === 'parent') {
-      await API.loginParentWithGoogle(response.credential);
+      const data = await API.loginParentWithGoogle(response.credential);
       closeLoginModal();
       redirectToParentDashboard();
       return;
     }
-
     const data = await API.loginStudentWithGoogle(response.credential);
     closeLoginModal();
     redirectToStudentDashboard(data.student);
@@ -435,6 +333,7 @@ async function handleCredentialResponse(response) {
   }
 }
 
+// ── REGISTER MODAL ────────────────────────────────────────────────────────────
 function openRegisterModal() {
   document.getElementById('registerModal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -448,7 +347,7 @@ function closeRegisterModal() {
   document.body.style.overflow = '';
 }
 function showRegStep(n) {
-  ['regStep1','regStep2','regStep3'].forEach((id, i) => {
+  ['regStep1', 'regStep2', 'regStep3'].forEach((id, i) => {
     const el = document.getElementById(id);
     if (el) el.style.display = (i === n - 1) ? 'flex' : 'none';
     if (el && i === n - 1) el.style.flexDirection = 'column';
@@ -465,78 +364,78 @@ function syncRegisterSubjectVisibility() {
 }
 const regClassField = document.getElementById('regClass');
 if (regClassField) regClassField.addEventListener('change', syncRegisterSubjectVisibility);
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CLASS-SPECIFIC QUESTIONS
+
+// ── CLASS-SPECIFIC QUESTIONS ──────────────────────────────────────────────────
 const classQuestions = {
   '9': [
-    { q:'Which of the following is an irrational number?',          opts:['&radic;4','&radic;9','&radic;2','&radic;16'],                             ans:2, topic:'Real Numbers' },
-    { q:'Solve: 2x + 5 = 13. Find x.',                             opts:['3','4','5','6'],                                                         ans:1, topic:'Algebra' },
-    { q:'If A={1,2,3} and B={2,3,4}, then A &cap; B = ?',          opts:['{1}','{4}','{2,3}','{1,2,3,4}'],                                        ans:2, topic:'Set Language' },
-    { q:'In a triangle, if two angles are 60&deg; and 70&deg;, the third is:', opts:['40&deg;','50&deg;','60&deg;','70&deg;'],               ans:1, topic:'Geometry' },
-    { q:'sin(30&deg;) = ?',                                          opts:['1','&radic;3/2','1/2','1/&radic;2'],                                    ans:2, topic:'Trigonometry' },
-    { q:'Area of circle with radius 7 cm (&pi;=22/7):',             opts:['44 cm&sup2;','154 cm&sup2;','49 cm&sup2;','22 cm&sup2;'],               ans:1, topic:'Mensuration' },
-    { q:'Distance between (0,0) and (3,4) is:',                     opts:['5','7','12','25'],                                                       ans:0, topic:'Coordinate Geometry' },
-    { q:'Mean of 5, 10, 15, 20, 25 is:',                            opts:['10','15','20','25'],                                                     ans:1, topic:'Statistics' },
-    { q:'A bag has 3 red and 2 blue balls. P(red) = ?',              opts:['2/5','3/5','1/5','3/2'],                                               ans:1, topic:'Probability' },
-    { q:'Volume of a cube with side 4 cm is:',                       opts:['16 cm&sup3;','24 cm&sup3;','48 cm&sup3;','64 cm&sup3;'],               ans:3, topic:'Mensuration' },
+    { q: 'Which of the following is an irrational number?', opts: ['√4', '√9', '√2', '√16'], ans: 2, topic: 'Real Numbers' },
+    { q: 'Solve: 2x + 5 = 13. Find x.', opts: ['3', '4', '5', '6'], ans: 1, topic: 'Algebra' },
+    { q: 'If A={1,2,3} and B={2,3,4}, then A ∩ B = ?', opts: ['{1}', '{4}', '{2,3}', '{1,2,3,4}'], ans: 2, topic: 'Set Language' },
+    { q: 'In a triangle, if two angles are 60° and 70°, the third is:', opts: ['40°', '50°', '60°', '70°'], ans: 1, topic: 'Geometry' },
+    { q: 'sin(30°) = ?', opts: ['1', '√3/2', '1/2', '1/√2'], ans: 2, topic: 'Trigonometry' },
+    { q: 'Area of circle with radius 7 cm (π=22/7):', opts: ['44 cm²', '154 cm²', '49 cm²', '22 cm²'], ans: 1, topic: 'Mensuration' },
+    { q: 'Distance between (0,0) and (3,4) is:', opts: ['5', '7', '12', '25'], ans: 0, topic: 'Coordinate Geometry' },
+    { q: 'Mean of 5, 10, 15, 20, 25 is:', opts: ['10', '15', '20', '25'], ans: 1, topic: 'Statistics' },
+    { q: 'A bag has 3 red and 2 blue balls. P(red) = ?', opts: ['2/5', '3/5', '1/5', '3/2'], ans: 1, topic: 'Probability' },
+    { q: 'Volume of a cube with side 4 cm is:', opts: ['16 cm³', '24 cm³', '48 cm³', '64 cm³'], ans: 3, topic: 'Mensuration' },
   ],
   '10': [
-    { q:'HCF of 12 and 18 is:',                                      opts:['2','3','6','9'],                                                       ans:2, topic:'Real Numbers' },
-    { q:'Roots of x&sup2; &minus; 5x + 6 = 0 are:',                 opts:['2, 3','1, 6','&minus;2, &minus;3','2, &minus;3'],                     ans:0, topic:'Algebra' },
-    { q:'If f(x) = 2x + 1, then f(3) = ?',                           opts:['5','6','7','8'],                                                       ans:2, topic:'Relations and Functions' },
-    { q:'tan(45&deg;) = ?',                                           opts:['0','1/&radic;3','1','&radic;3'],                                      ans:2, topic:'Trigonometry' },
-    { q:'Slope of line joining (1,2) and (3,6) is:',                  opts:['1','2','3','4'],                                                      ans:1, topic:'Coordinate Geometry' },
-    { q:'In a 3-4-5 right triangle, hypotenuse is:',                  opts:['3','4','5','6'],                                                      ans:2, topic:'Geometry' },
-    { q:'Number of tangents from external point to a circle:',         opts:['0','1','2','3'],                                                      ans:2, topic:'Geometry' },
-    { q:'Volume of sphere radius 3 (&pi;=22/7):',                     opts:['28&pi;','36&pi;','48&pi;','54&pi;'],                                  ans:1, topic:'Mensuration' },
-    { q:'Standard deviation measures:',                               opts:['Average','Spread','Frequency','Range'],                                ans:1, topic:'Statistics' },
-    { q:'P(A)=0.4, P(B)=0.5, P(A&cap;B)=0.2. P(A&cup;B)=?',         opts:['0.5','0.6','0.7','0.9'],                                             ans:2, topic:'Probability' },
+    { q: 'HCF of 12 and 18 is:', opts: ['2', '3', '6', '9'], ans: 2, topic: 'Real Numbers' },
+    { q: 'Roots of x² − 5x + 6 = 0 are:', opts: ['2, 3', '1, 6', '−2, −3', '2, −3'], ans: 0, topic: 'Algebra' },
+    { q: 'If f(x) = 2x + 1, then f(3) = ?', opts: ['5', '6', '7', '8'], ans: 2, topic: 'Relations and Functions' },
+    { q: 'tan(45°) = ?', opts: ['0', '1/√3', '1', '√3'], ans: 2, topic: 'Trigonometry' },
+    { q: 'Slope of line joining (1,2) and (3,6) is:', opts: ['1', '2', '3', '4'], ans: 1, topic: 'Coordinate Geometry' },
+    { q: 'In a 3-4-5 right triangle, hypotenuse is:', opts: ['3', '4', '5', '6'], ans: 2, topic: 'Geometry' },
+    { q: 'Number of tangents from external point to a circle:', opts: ['0', '1', '2', '3'], ans: 2, topic: 'Geometry' },
+    { q: 'Volume of sphere radius 3 (π=22/7):', opts: ['28π', '36π', '48π', '54π'], ans: 1, topic: 'Mensuration' },
+    { q: 'Standard deviation measures:', opts: ['Average', 'Spread', 'Frequency', 'Range'], ans: 1, topic: 'Statistics' },
+    { q: 'P(A)=0.4, P(B)=0.5, P(A∩B)=0.2. P(A∪B)=?', opts: ['0.5', '0.6', '0.7', '0.9'], ans: 2, topic: 'Probability' },
   ],
   '11': [
-    { q:'If A has 5 elements, number of subsets = ?',                 opts:['16','25','32','64'],                                                   ans:2, topic:'Sets' },
-    { q:'Value of i&sup2; is:',                                       opts:['1','&minus;1','i','&minus;i'],                                        ans:1, topic:'Complex Numbers' },
-    { q:'lim(x&rarr;0) sin(x)/x = ?',                                opts:['0','&infin;','1','&minus;1'],                                         ans:2, topic:'Limits' },
-    { q:'d/dx (x&sup4;) = ?',                                         opts:['x&sup3;','4x&sup3;','4x','3x&sup3;'],                                ans:1, topic:'Differentiation' },
-    { q:'&sup5;P&sub2; = ?',                                          opts:['10','15','20','25'],                                                   ans:2, topic:'Permutations' },
-    { q:'&sup5;C&sub2; = ?',                                          opts:['5','10','15','20'],                                                   ans:1, topic:'Combinations' },
-    { q:'sin&sup2;&theta; + cos&sup2;&theta; = ?',                    opts:['0','1','2','tan&sup2;&theta;'],                                        ans:1, topic:'Trigonometry' },
-    { q:'Slope of 3x &minus; 4y + 5 = 0 is:',                        opts:['3/4','&minus;3/4','4/3','&minus;4/3'],                                ans:0, topic:'Lines' },
-    { q:'Matrix [[1,0],[0,1]] is called:',                            opts:['Zero','Identity','Scalar','Diagonal'],                                 ans:1, topic:'Matrices' },
-    { q:'Mean of first 10 natural numbers:',                          opts:['4.5','5','5.5','6'],                                                   ans:2, topic:'Statistics' },
+    { q: 'If A has 5 elements, number of subsets = ?', opts: ['16', '25', '32', '64'], ans: 2, topic: 'Sets' },
+    { q: 'Value of i² is:', opts: ['1', '−1', 'i', '−i'], ans: 1, topic: 'Complex Numbers' },
+    { q: 'lim(x→0) sin(x)/x = ?', opts: ['0', '∞', '1', '−1'], ans: 2, topic: 'Limits' },
+    { q: 'd/dx (x⁴) = ?', opts: ['x³', '4x³', '4x', '3x³'], ans: 1, topic: 'Differentiation' },
+    { q: '⁵P₂ = ?', opts: ['10', '15', '20', '25'], ans: 2, topic: 'Permutations' },
+    { q: '⁵C₂ = ?', opts: ['5', '10', '15', '20'], ans: 1, topic: 'Combinations' },
+    { q: 'sin²θ + cos²θ = ?', opts: ['0', '1', '2', 'tan²θ'], ans: 1, topic: 'Trigonometry' },
+    { q: 'Slope of 3x − 4y + 5 = 0 is:', opts: ['3/4', '−3/4', '4/3', '−4/3'], ans: 0, topic: 'Lines' },
+    { q: 'Matrix [[1,0],[0,1]] is called:', opts: ['Zero', 'Identity', 'Scalar', 'Diagonal'], ans: 1, topic: 'Matrices' },
+    { q: 'Mean of first 10 natural numbers:', opts: ['4.5', '5', '5.5', '6'], ans: 2, topic: 'Statistics' },
   ],
   '12': [
-    { q:'&int; x&sup2; dx = ?',                                       opts:['x&sup3;','x&sup3;/3 + C','2x','3x&sup2;'],                           ans:1, topic:'Integration' },
-    { q:'d/dx (e^x) = ?',                                             opts:['xe^(x&minus;1)','e^x','e^(x&minus;1)','0'],                          ans:1, topic:'Differentiation' },
-    { q:'|A| for A=[[2,1],[4,3]] is:',                                opts:['2','6','8','10'],                                                     ans:0, topic:'Matrices' },
-    { q:'Order of y&Prime; + y&prime; = x is:',                       opts:['1','2','3','0'],                                                      ans:1, topic:'Differential Equations' },
-    { q:'P(A|B) when P(A&cap;B)=0.2, P(B)=0.4:',                     opts:['0.2','0.4','0.5','0.8'],                                             ans:2, topic:'Probability' },
-    { q:'If a &times; b = 0, vectors are:',                           opts:['Perpendicular','Parallel','Equal','Opposite'],                         ans:1, topic:'Vectors' },
-    { q:'&int;&sup0;&sub1; x dx = ?',                                 opts:['0','1/2','1','2'],                                                    ans:1, topic:'Definite Integrals' },
-    { q:'Inverse of f(x) = 2x + 3 is:',                               opts:['(x&minus;3)/2','(x+3)/2','2x&minus;3','(3&minus;x)/2'],              ans:0, topic:'Relations and Functions' },
-    { q:'Linear programming finds:',                                   opts:['Average value','Optimal value','Exact value','Random value'],         ans:1, topic:'Linear Programming' },
-    { q:'In binomial dist, n=10, p=0.4, mean=?',                      opts:['2','4','6','8'],                                                      ans:1, topic:'Probability Distributions' },
+    { q: '∫ x² dx = ?', opts: ['x³', 'x³/3 + C', '2x', '3x²'], ans: 1, topic: 'Integration' },
+    { q: 'd/dx (e^x) = ?', opts: ['xe^(x−1)', 'e^x', 'e^(x−1)', '0'], ans: 1, topic: 'Differentiation' },
+    { q: '|A| for A=[[2,1],[4,3]] is:', opts: ['2', '6', '8', '10'], ans: 0, topic: 'Matrices' },
+    { q: 'Order of y″ + y′ = x is:', opts: ['1', '2', '3', '0'], ans: 1, topic: 'Differential Equations' },
+    { q: 'P(A|B) when P(A∩B)=0.2, P(B)=0.4:', opts: ['0.2', '0.4', '0.5', '0.8'], ans: 2, topic: 'Probability' },
+    { q: 'If a × b = 0, vectors are:', opts: ['Perpendicular', 'Parallel', 'Equal', 'Opposite'], ans: 1, topic: 'Vectors' },
+    { q: '∫₀¹ x dx = ?', opts: ['0', '1/2', '1', '2'], ans: 1, topic: 'Definite Integrals' },
+    { q: 'Inverse of f(x) = 2x + 3 is:', opts: ['(x−3)/2', '(x+3)/2', '2x−3', '(3−x)/2'], ans: 0, topic: 'Relations and Functions' },
+    { q: 'Linear programming finds:', opts: ['Average value', 'Optimal value', 'Exact value', 'Random value'], ans: 1, topic: 'Linear Programming' },
+    { q: 'In binomial dist, n=10, p=0.4, mean=?', opts: ['2', '4', '6', '8'], ans: 1, topic: 'Probability Distributions' },
   ]
 };
- 
+
 let assessAnswers = {};
-let currentQ      = 0;
+let currentQ = 0;
 let activeQuestions = [];
-let studentData   = {};
- 
+let studentData = {};
+
 async function startAssessment() {
-  const name   = (document.getElementById('regName')?.value   || '').trim();
-  const cls    = (document.getElementById('regClass')?.value  || '').trim();
+  const name = (document.getElementById('regName')?.value || '').trim();
+  const cls = (document.getElementById('regClass')?.value || '').trim();
   const subject = (document.getElementById('regSubject')?.value || '').trim();
   const mobile = (document.getElementById('regMobile')?.value || '').trim();
-  const email  = (document.getElementById('regEmail')?.value  || '').trim();
+  const email = (document.getElementById('regEmail')?.value || '').trim();
   const password = (document.getElementById('regPassword')?.value || '').trim();
- 
-  if (!name)                    { flashField('regName',   'Please enter student name.');           return; }
-  if (!cls)                     { flashField('regClass',  'Please select your class.');            return; }
+
+  if (!name) { flashField('regName', 'Please enter student name.'); return; }
+  if (!cls) { flashField('regClass', 'Please select your class.'); return; }
   if ((cls === '11' || cls === '12') && !subject) { flashField('regSubject', 'Please choose Maths or Business Maths.'); return; }
-  if (mobile.replace(/\D/g,'').length < 10) { flashField('regMobile','Enter valid 10-digit mobile.'); return; }
-  if (!email || !email.includes('@'))        { flashField('regEmail', 'Enter valid email address.');  return; }
-  if (password.length < 6)      { flashField('regPassword', 'Password must be at least 6 characters.'); return; }
+  if (mobile.replace(/\D/g, '').length < 10) { flashField('regMobile', 'Enter valid 10-digit mobile.'); return; }
+  if (!email || !email.includes('@')) { flashField('regEmail', 'Enter valid email address.'); return; }
+  if (password.length < 6) { flashField('regPassword', 'Password must be at least 6 characters.'); return; }
 
   try {
     await API.registerStudent(name, cls, mobile, email, password, subject || 'maths');
@@ -547,34 +446,30 @@ async function startAssessment() {
 
   studentData = { name, cls, class: cls, subject: subject || 'maths', mobile, email };
   localStorage.setItem('ilearn_student', JSON.stringify(studentData));
- 
   activeQuestions = classQuestions[cls] || classQuestions['9'];
-  assessAnswers   = {};
-  currentQ        = 0;
- 
-  document.getElementById('testTitle').textContent    = 'Class ' + cls + ' Diagnostic Test';
+  assessAnswers = {};
+  currentQ = 0;
+  document.getElementById('testTitle').textContent = 'Class ' + cls + ' Diagnostic Test';
   document.getElementById('testSubtitle').textContent = 'Answer all 10 questions - ' + name;
   showRegStep(2);
   renderQuestion();
 }
- 
+
 function flashField(id, msg) {
   const el = document.getElementById(id);
   if (el) { el.style.borderColor = '#FF2D78'; el.focus(); setTimeout(() => el.style.borderColor = '', 3000); }
   alert(msg);
 }
- 
+
 function renderQuestion() {
-  const q     = activeQuestions[currentQ];
+  const q = activeQuestions[currentQ];
   const total = activeQuestions.length;
-  const pct   = Math.round(currentQ / total * 100);
- 
-  document.getElementById('qProgress').textContent  = 'Question ' + (currentQ + 1) + ' of ' + total;
-  document.getElementById('qPct').textContent        = pct + '%';
-  document.getElementById('qProgFill').style.width   = pct + '%';
-  document.getElementById('prevBtn').style.display   = currentQ > 0 ? 'inline-block' : 'none';
-  document.getElementById('nextBtn').textContent     = currentQ === total - 1 ? 'Submit' : 'Next ->';
- 
+  const pct = Math.round(currentQ / total * 100);
+  document.getElementById('qProgress').textContent = 'Question ' + (currentQ + 1) + ' of ' + total;
+  document.getElementById('qPct').textContent = pct + '%';
+  document.getElementById('qProgFill').style.width = pct + '%';
+  document.getElementById('prevBtn').style.display = currentQ > 0 ? 'inline-block' : 'none';
+  document.getElementById('nextBtn').textContent = currentQ === total - 1 ? 'Submit' : 'Next →';
   const sel = assessAnswers[currentQ];
   document.getElementById('questionArea').innerHTML = `
     <div style="background:var(--dark3);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
@@ -582,147 +477,97 @@ function renderQuestion() {
       <div style="font-size:0.94rem;line-height:1.6;margin-bottom:16px;color:var(--text);">${currentQ + 1}. ${q.q}</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${q.opts.map((opt, i) => `
-          <div onclick="selectQ(${i})" style="
-            display:flex;align-items:center;gap:12px;padding:10px 14px;
-            background:${sel === i ? 'rgba(255,45,120,0.12)' : 'rgba(255,255,255,0.02)'};
-            border:1px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.08)'};
-            border-radius:10px;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">
-            <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.25)'};
-              background:${sel === i ? 'var(--pink)' : 'transparent'};flex-shrink:0;transition:all 0.2s;"></div>
+          <div onclick="selectQ(${i})" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${sel === i ? 'rgba(255,45,120,0.12)' : 'rgba(255,255,255,0.02)'};border:1px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.08)'};border-radius:10px;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.25)'};background:${sel === i ? 'var(--pink)' : 'transparent'};flex-shrink:0;transition:all 0.2s;"></div>
             ${opt}
           </div>`).join('')}
       </div>
     </div>`;
 }
- 
-function selectQ(idx) {
-  assessAnswers[currentQ] = idx;
-  renderQuestion();
-}
- 
+
+function selectQ(idx) { assessAnswers[currentQ] = idx; renderQuestion(); }
 function nextQ() {
-  const total = activeQuestions.length;
-  if (assessAnswers[currentQ] === undefined) {
-    alert('Please select an answer before continuing.');
-    return;
-  }
-  if (currentQ === total - 1) {
-    showResult();
-  } else {
-    currentQ++;
-    renderQuestion();
-  }
+  if (assessAnswers[currentQ] === undefined) { alert('Please select an answer before continuing.'); return; }
+  if (currentQ === activeQuestions.length - 1) { showResult(); } else { currentQ++; renderQuestion(); }
 }
- 
-function prevQ() {
-  if (currentQ > 0) { currentQ--; renderQuestion(); }
-}
- 
+function prevQ() { if (currentQ > 0) { currentQ--; renderQuestion(); } }
+
 function showResult() {
-  const total   = activeQuestions.length;
+  const total = activeQuestions.length;
   const correct = activeQuestions.filter((q, i) => assessAnswers[i] === q.ans).length;
-  const pct     = Math.round(correct / total * 100);
- 
+  const pct = Math.round(correct / total * 100);
   const topicScores = {};
   activeQuestions.forEach((q, i) => {
-    if (!topicScores[q.topic]) topicScores[q.topic] = { c:0, t:0 };
+    if (!topicScores[q.topic]) topicScores[q.topic] = { c: 0, t: 0 };
     topicScores[q.topic].t++;
     if (assessAnswers[i] === q.ans) topicScores[q.topic].c++;
   });
- 
-  const weakTopics   = Object.entries(topicScores).filter(([,s]) => s.c/s.t < 0.6).map(([t]) => t);
-  const strongTopics = Object.entries(topicScores).filter(([,s]) => s.c/s.t >= 0.8).map(([t]) => t);
-  const scoreCol     = pct >= 70 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
-  const grade        = pct >= 80 ? 'Excellent \uD83C\uDFC6' : pct >= 60 ? 'Good \uD83D\uDC4D' : pct >= 40 ? 'Average \uD83D\uDCAA' : 'Needs Work \uD83D\uDCDA';
- 
-  document.getElementById('resultScore').innerHTML  = '<span style="color:' + scoreCol + '">' + pct + '%</span>';
+  const weakTopics = Object.entries(topicScores).filter(([, s]) => s.c / s.t < 0.6).map(([t]) => t);
+  const strongTopics = Object.entries(topicScores).filter(([, s]) => s.c / s.t >= 0.8).map(([t]) => t);
+  const scoreCol = pct >= 70 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
+  const grade = pct >= 80 ? 'Excellent 🏆' : pct >= 60 ? 'Good 👍' : pct >= 40 ? 'Average 💪' : 'Needs Work 📚';
+
+  document.getElementById('resultScore').innerHTML = '<span style="color:' + scoreCol + '">' + pct + '%</span>';
   document.getElementById('resultGrade').textContent = grade;
-  document.getElementById('resultNote').textContent  = correct + ' of ' + total + ' correct \u2022 Class ' + studentData.cls + ' Diagnostic';
- 
+  document.getElementById('resultNote').textContent = correct + ' of ' + total + ' correct • Class ' + studentData.cls + ' Diagnostic';
   document.getElementById('resultGrid').innerHTML =
-    '<div class="rbox good"><div class="rbox-title good">\u2713 Strong Topics</div>' +
-    (strongTopics.length
-      ? strongTopics.map(t => '<div class="rbox-item">\u2022 ' + t + '</div>').join('')
-      : '<div class="rbox-item">Keep practicing!</div>') + '</div>' +
-    '<div class="rbox weak"><div class="rbox-title weak">\u26A0 Needs Focus</div>' +
-    (weakTopics.length
-      ? weakTopics.map(t => '<div class="rbox-item">\u2022 ' + t + '</div>').join('')
-      : '<div class="rbox-item">Great performance!</div>') + '</div>';
- 
+    '<div class="rbox good"><div class="rbox-title good">✓ Strong Topics</div>' +
+    (strongTopics.length ? strongTopics.map(t => '<div class="rbox-item">• ' + t + '</div>').join('') : '<div class="rbox-item">Keep practicing!</div>') + '</div>' +
+    '<div class="rbox weak"><div class="rbox-title weak">⚠ Needs Focus</div>' +
+    (weakTopics.length ? weakTopics.map(t => '<div class="rbox-item">• ' + t + '</div>').join('') : '<div class="rbox-item">Great performance!</div>') + '</div>';
   document.getElementById('topicBars').innerHTML = Object.entries(topicScores).map(([topic, s]) => {
-    const p   = Math.round(s.c / s.t * 100);
+    const p = Math.round(s.c / s.t * 100);
     const col = p >= 70 ? '#00E5A0' : p >= 50 ? '#FFD166' : '#FF2D78';
-    return '<div class="t-bar-wrap">' +
-      '<div class="t-bar-top"><span>' + topic + '</span><span style="color:' + col + '">' + p + '%</span></div>' +
-      '<div class="t-bar"><div class="t-bar-fill" style="width:' + p + '%;background:' + col + '"></div></div>' +
-      '</div>';
+    return '<div class="t-bar-wrap"><div class="t-bar-top"><span>' + topic + '</span><span style="color:' + col + '">' + p + '%</span></div><div class="t-bar"><div class="t-bar-fill" style="width:' + p + '%;background:' + col + '"></div></div></div>';
   }).join('');
- 
-  document.getElementById('aiTip').innerHTML =
-    '\uD83E\uDD16 <strong>AI Recommendation:</strong> Focus extra time on <strong>' +
-    (weakTopics.length ? weakTopics.slice(0, 2).join(' and ') : 'all topics equally') +
-    '</strong>. Use the AI Timetable Generator to build your personalised study plan.';
- 
+  document.getElementById('aiTip').innerHTML = '🤖 <strong>AI Recommendation:</strong> Focus extra time on <strong>' + (weakTopics.length ? weakTopics.slice(0, 2).join(' and ') : 'all topics equally') + '</strong>. Use the AI Timetable Generator to build your personalised study plan.';
   showRegStep(3);
 }
- 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
-//   AI CHATBOT
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+
+// ── AI CHATBOT ────────────────────────────────────────────────────────────────
 const chatHistory = [];
- 
+
 async function sendChat() {
-  const input    = document.getElementById('chatInput');
+  const input = document.getElementById('chatInput');
   const chatBody = document.getElementById('chatBody');
   if (!input || !chatBody) return;
   const q = input.value.trim();
   if (!q) return;
   input.value = '';
- 
-  chatHistory.push({ role:'user', content:q });
-  chatBody.innerHTML += `<div class="msg user"><div class="msg-ava" style="background:rgba(255,45,120,0.2)">&#128100;</div><div class="msg-bubble">${esc(q)}</div></div>`;
- 
+  chatHistory.push({ role: 'user', content: q });
+  chatBody.innerHTML += `<div class="msg user"><div class="msg-ava" style="background:rgba(255,45,120,0.2)">👤</div><div class="msg-bubble">${esc(q)}</div></div>`;
   const tid = 'typing_' + Date.now();
-  chatBody.innerHTML += `<div class="msg bot" id="${tid}"><div class="msg-ava">&#129302;</div><div class="typing"><span></span><span></span><span></span></div></div>`;
+  chatBody.innerHTML += `<div class="msg bot" id="${tid}"><div class="msg-ava">🤖</div><div class="typing"><span></span><span></span><span></span></div></div>`;
   chatBody.scrollTop = chatBody.scrollHeight;
- 
   try {
     const data = await API.sendChatMessage(q);
     const reply = data.reply || 'Sorry, please try again!';
-    chatHistory.push({ role:'assistant', content:reply });
+    chatHistory.push({ role: 'assistant', content: reply });
     if (data.sessionKey) localStorage.setItem('ilearn_chat_session', data.sessionKey);
     document.getElementById(tid)?.remove();
-    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">&#129302;</div><div class="msg-bubble">${fmt(reply)}</div></div>`;
-  } catch(e) {
+    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(reply)}</div></div>`;
+  } catch (e) {
     document.getElementById(tid)?.remove();
-    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">&#129302;</div><div class="msg-bubble">${fmt(e.message || 'Connection error. Please try again.')}</div></div>`;
+    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(e.message || 'Connection error. Please try again.')}</div></div>`;
   }
   chatBody.scrollTop = chatBody.scrollHeight;
 }
- 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function fmt(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>');
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
 }
 
 document.addEventListener('click', (event) => {
   const menu = document.getElementById('profileMenu');
   const panel = document.getElementById('profilePanel');
   if (!menu || !panel) return;
-  if (!menu.contains(event.target)) {
-    panel.classList.remove('open');
-  }
+  if (!menu.contains(event.target)) panel.classList.remove('open');
 });
 
 function getStoredProfileState(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || '{}');
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
 }
 
 function getCurrentRole() {
@@ -735,7 +580,6 @@ function getCurrentRole() {
 function getProfileData() {
   const role = getCurrentRole();
   if (!role) return null;
-
   if (role === 'student') {
     const data = getStoredProfileState('ilearn_student_profile');
     const student = data.student || getStoredProfileState('ilearn_student');
@@ -743,9 +587,7 @@ function getProfileData() {
     const total = Number(data.totalAttendance?.total || 0);
     const percentage = total ? Math.round((present / total) * 1000) / 10 : 0;
     return {
-      role,
-      title: student.name || 'Student',
-      subtitle: 'Student',
+      role, title: student.name || 'Student', subtitle: 'Student',
       items: [
         { label: 'Role', value: 'Student' },
         { label: 'Class', value: student.class ? 'Class ' + student.class : 'Not available' },
@@ -754,18 +596,15 @@ function getProfileData() {
       ]
     };
   }
-
   if (role === 'parent') {
     const data = getStoredProfileState('ilearn_parent_profile');
     const student = data.student || getStoredProfileState('ilearn_parent_student');
-    const attendance = data.report?.attendance || {};
-    const present = Number(attendance.present || 0);
-    const total = Number(attendance.total || 0);
+    const monthAtt = data.report?.attendanceSummary?.month || data.report?.attendance || data.attendance || {};
+    const present = Number(monthAtt.present || 0);
+    const total = Number(monthAtt.total || 0);
     const percentage = total ? Math.round((present / total) * 1000) / 10 : 0;
     return {
-      role,
-      title: 'Parent',
-      subtitle: student.name ? 'Parent of ' + student.name : 'Parent',
+      role, title: 'Parent', subtitle: student.name ? 'Parent of ' + student.name : 'Parent',
       items: [
         { label: 'Role', value: 'Parent' },
         { label: 'Student', value: student.name || 'Linked student' },
@@ -774,12 +613,9 @@ function getProfileData() {
       ]
     };
   }
-
   const teacher = getStoredProfileState('ilearn_teacher');
   return {
-    role,
-    title: teacher.name || 'Teacher',
-    subtitle: 'Teacher',
+    role, title: teacher.name || 'Teacher', subtitle: 'Teacher',
     items: [
       { label: 'Role', value: 'Teacher' },
       { label: 'Name', value: teacher.name || 'Master Maths Staff' },
@@ -795,9 +631,7 @@ function renderNavProfile() {
   const loginBtn = document.getElementById('navLoginBtn');
   const registerBtn = document.getElementById('navRegisterBtn');
   const profile = getProfileData();
-
   if (!profileMenu || !profilePanel || !loginBtn || !registerBtn) return;
-
   if (!profile) {
     profileMenu.style.display = 'none';
     loginBtn.style.display = '';
@@ -805,37 +639,23 @@ function renderNavProfile() {
     profilePanel.classList.remove('open');
     return;
   }
-
   loginBtn.style.display = 'none';
-  registerBtn.style.display = profile.role === 'teacher' ? 'none' : 'none';
+  registerBtn.style.display = 'none';
   profileMenu.style.display = 'block';
   const logoutFn = profile.role === 'student' ? 'API.logoutStudent()' : (profile.role === 'parent' ? 'API.logoutParent()' : 'API.logoutTeacher()');
   profilePanel.innerHTML = `
     <h4>${profile.title}</h4>
     <p>${profile.subtitle}</p>
-    ${profile.items.map((item) => `
-      <div class="profile-row">
-        <div class="profile-label">${item.label}</div>
-        <div class="profile-value">${item.value}</div>
-      </div>
-    `).join('')}
+    ${profile.items.map((item) => `<div class="profile-row"><div class="profile-label">${item.label}</div><div class="profile-value">${item.value}</div></div>`).join('')}
     <button class="profile-logout" onclick="${logoutFn}">Logout</button>
   `;
 }
 
-
-
 async function loginTeacher() {
   const email = (document.getElementById('lt-email')?.value || '').trim();
   const password = (document.getElementById('lt-password')?.value || '').trim();
-
   clearLoginError();
-
-  if (!email || !password) {
-    showLoginError('Please enter the teacher email and password.');
-    return;
-  }
-
+  if (!email || !password) { showLoginError('Please enter the teacher email and password.'); return; }
   try {
     const data = await API.loginTeacher(email, password);
     closeLoginModal();
@@ -843,6 +663,29 @@ async function loginTeacher() {
     redirectToTeacherDashboard();
   } catch (err) {
     showLoginError(err.message || 'Teacher login failed');
+  }
+}
+
+// ── PARENT DASHBOARD REFRESH ──────────────────────────────────────────────────
+async function refreshParentDashboard() {
+  if (!hasActiveParentSession()) return;
+  try {
+    const profile = await API.getParentReport();
+    localStorage.setItem('ilearn_parent_profile', JSON.stringify(profile));
+    localStorage.setItem('ilearn_parent_student', JSON.stringify(profile.student || {}));
+
+    const report = profile.report || profile;
+    const student = profile.student || {};
+
+    // Inject all parent tab data
+    if (typeof injectParentTabData === 'function') {
+      injectParentTabData(report, student);
+    }
+
+    updateDashboardAttendanceCards();
+    renderNavProfile();
+  } catch (err) {
+    console.warn('Parent dashboard refresh failed:', err.message || err);
   }
 }
 
@@ -859,8 +702,8 @@ async function refreshRoleData() {
         console.warn('Timetable refresh skipped:', innerErr.message || innerErr);
       }
     } else if (role === 'parent') {
-      const profile = await API.getParentReport();
-      localStorage.setItem('ilearn_parent_profile', JSON.stringify(profile));
+      await refreshParentDashboard();
+      return; // refreshParentDashboard already calls updateDashboardAttendanceCards
     } else if (role === 'teacher') {
       const teacher = JSON.parse(localStorage.getItem('ilearn_teacher') || '{}');
       localStorage.setItem('ilearn_teacher', JSON.stringify(teacher));
@@ -871,31 +714,28 @@ async function refreshRoleData() {
   updateDashboardAttendanceCards();
   renderTodayTimetableReminder();
 }
+
+// ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
 function setElementText(id, value) {
   const node = document.getElementById(id);
   if (node) node.textContent = value;
 }
-
 function setElementWidth(id, value) {
   const node = document.getElementById(id);
   if (node) node.style.width = value;
 }
-
 function formatUpdatedLabel(dateObj) {
   const date = dateObj || new Date();
   return 'Last updated: ' + date.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
 function setUpdatedLabel(id, dateObj) {
   const node = document.getElementById(id);
   if (!node) return;
   node.textContent = formatUpdatedLabel(dateObj);
 }
-
 function getTodayTimetableDayKey() {
   return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
 }
-
 function getTimetableSlotClass(type) {
   const value = String(type || '').toLowerCase();
   if (value === 'study') return 'var(--pink)';
@@ -905,7 +745,6 @@ function getTimetableSlotClass(type) {
   if (value === 'test') return '#FFD166';
   return 'var(--blue)';
 }
-
 function renderTodayTimetableReminder() {
   const wrap = document.getElementById('studentTodayTimetable');
   if (!wrap) return;
@@ -926,73 +765,7 @@ function renderTodayTimetableReminder() {
   }).join('');
 }
 
-function renderParentSupplementalWidgets(parentProfile) {
-  ensureParentExtraWidgets();
-
-  const weeklyWrap = document.getElementById('parentWeeklyTests');
-  const mcqSummary = document.getElementById('parentMcqSummary');
-  const mcqList = document.getElementById('parentMcqList');
-  const weeklyTests = Array.isArray(parentProfile?.report?.weeklyTests) ? parentProfile.report.weeklyTests : [];
-  const dailyMcqSet = parentProfile?.report?.dailyMcqSet || {};
-  const mcqQuestions = Array.isArray(dailyMcqSet.questions) ? dailyMcqSet.questions : [];
-
-  if (weeklyWrap) {
-    if (!weeklyTests.length) {
-      weeklyWrap.innerHTML = 'Weekly test marks will appear here once teachers enter them.';
-    } else {
-      weeklyWrap.innerHTML = weeklyTests.slice(0, 5).map((test) => {
-        const totalMarks = Number(test.total_marks || 0);
-        const obtained = Number(test.marks_obtained || 0);
-        return `
-          <div class="metric-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <span class="metric-label">${test.title || 'Weekly Test'} (${test.test_date || 'Recent'})</span>
-            <span class="metric-value">${obtained}/${totalMarks || 100}</span>
-          </div>
-        `;
-      }).join('');
-    }
-  }
-
-  if (mcqSummary) {
-    const answered = mcqQuestions.filter((item) => item.selected_index !== null && item.selected_index !== undefined);
-    const correct = answered.filter((item) => {
-      if (item.is_correct === 1 || item.is_correct === true) return true;
-      if (item.correct_index === null || item.correct_index === undefined) return false;
-      return Number(item.selected_index) === Number(item.correct_index);
-    });
-    mcqSummary.textContent = dailyMcqSet.batchTitle
-      ? `${dailyMcqSet.batchTitle} - ${correct.length}/${answered.length || mcqQuestions.length} correct`
-      : 'Daily MCQ summary will appear here.';
-  }
-
-  if (mcqList) {
-    if (!mcqQuestions.length) {
-      mcqList.innerHTML = '';
-    } else {
-      mcqList.innerHTML = mcqQuestions.slice(0, 6).map((item, idx) => {
-        const attempted = item.selected_index !== null && item.selected_index !== undefined;
-        const correct = item.is_correct === 1 || item.is_correct === true || (
-          attempted &&
-          item.correct_index !== null &&
-          item.correct_index !== undefined &&
-          Number(item.selected_index) === Number(item.correct_index)
-        );
-        return `
-          <div style="padding:12px 0;border-top:1px solid rgba(255,255,255,0.06);">
-            <div style="font-weight:700;">Question ${idx + 1}</div>
-            <div style="font-size:0.84rem;color:var(--muted);margin-top:4px;">${item.question || 'MCQ question available in student dashboard.'}</div>
-            <div style="font-size:0.82rem;margin-top:6px;color:${attempted ? (correct ? 'var(--green)' : 'var(--yellow)') : 'var(--muted)'};">
-              ${attempted ? (correct ? 'Answered correctly' : 'Answered but needs review') : 'Not attempted yet'}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
-}
-
 function updateDashboardAttendanceCards() {
-  ensureParentExtraWidgets();
   const now = new Date();
   const role = getCurrentRole();
 
@@ -1005,13 +778,14 @@ function updateDashboardAttendanceCards() {
   const welcomeName = role === 'student'
     ? (studentProfile.student?.name || studentStored.name || 'Student')
     : (role === 'parent'
-      ? (parentStored.name || 'Parent')
+      ? (parentProfile.student?.name || parentStored.name || 'Parent')
       : (role === 'teacher' ? (teacherStored.name || 'Teacher') : 'Learner'));
 
   setElementText('dashboardWelcomeName', welcomeName || 'Learner');
   setElementText('dashboardWelcomeRole', role ? `Signed in as ${role}` : 'Sign in to view your dashboard');
   setUpdatedLabel('dashboardWelcomeUpdated', now);
 
+  // ── Student attendance ──
   const studentMonth = studentProfile.attendanceSummary?.month || null;
   const studentOverall = studentProfile.attendanceSummary?.overall || null;
   if (studentMonth || studentOverall) {
@@ -1024,75 +798,45 @@ function updateDashboardAttendanceCards() {
       : 'Attendance will appear here once your teacher starts marking it.');
   }
   setUpdatedLabel('studentAttendanceUpdated', now);
+
   const streakValue = Number(studentProfile.mcqStreak || 0);
   setElementText('studentStreakValue', streakValue + ' day' + (streakValue === 1 ? '' : 's'));
   setUpdatedLabel('studentStreakUpdated', now);
 
-  const studentMcqSet = studentProfile.dailyMcqSet || {};
-  const studentMcqQuestions = Array.isArray(studentMcqSet.questions) ? studentMcqSet.questions : [];
-  const studentMcqText = studentMcqSet.batchTitle
-    ? `${studentMcqSet.batchTitle} - ${studentMcqQuestions.length} question(s)`
-    : 'No active MCQ batch yet.';
-  setElementText('studentMcqSummaryDashboard', studentMcqText);
-  setUpdatedLabel('studentMcqUpdated', now);
-
-  const studentPapers = Array.isArray(studentProfile.questionPapers) ? studentProfile.questionPapers : [];
-  const paperText = studentPapers.length
-    ? `${studentPapers.length} paper(s) available`
-    : 'No question papers posted yet.';
-  setElementText('studentPaperSummaryDashboard', paperText);
-  setUpdatedLabel('studentPaperUpdated', now);
-
+  // ── Parent attendance (existing HTML cards) ──
+  const report = parentProfile.report || parentProfile;
   const parentStudent = parentProfile.student || parentStored;
-  const parentMonth = parentProfile.report?.attendanceSummary?.month || parentProfile.report?.attendance || null;
-  const parentOverall = parentProfile.report?.attendanceSummary?.overall || parentMonth;
-  if (parentMonth || parentOverall || parentStudent?.name) {
+  const parentMonth = report?.attendanceSummary?.month || report?.attendance || null;
+  const parentOverall = report?.attendanceSummary?.overall || parentMonth;
+
+  if (parentMonth !== null || parentStudent?.name) {
     setElementText('parentAttendanceMonth', `${parentMonth?.present || 0} / ${parentMonth?.total || 0} days`);
     setElementText('parentAttendanceOverall', `${parentOverall?.percentage || 0}%`);
     setElementText('parentAttendanceStudent', parentStudent?.name || 'Linked student');
     setElementText('parentAttendanceProgressLabel', `${parentOverall?.percentage || 0}%`);
     setElementWidth('parentAttendanceProgress', `${Math.max(0, Math.min(100, Number(parentOverall?.percentage || 0)))}%`);
+    setUpdatedLabel('parentAttendanceUpdated', now);
   }
-  setUpdatedLabel('parentAttendanceUpdated', now);
 
-  const attendanceSummaryValue = parentOverall?.percentage || 0;
-  setElementText('parentSummaryAttendance', `${attendanceSummaryValue}%`);
-  setUpdatedLabel('parentSummaryAttendanceUpdated', now);
-
-  const parentMcqSet = parentProfile.report?.dailyMcqSet || {};
-  const parentQuestions = Array.isArray(parentMcqSet.questions) ? parentMcqSet.questions : [];
-  const parentCorrect = parentQuestions.filter((item) => {
-    if (item.is_correct === 1 || item.is_correct === true) return true;
-    if (item.selected_index === null || item.selected_index === undefined) return false;
-    if (item.correct_index === null || item.correct_index === undefined) return false;
-    return Number(item.selected_index) === Number(item.correct_index);
-  }).length;
-  const parentMcqText = parentQuestions.length
-    ? `${parentCorrect}/${parentQuestions.length} correct`
-    : 'No MCQ yet';
-  setElementText('parentSummaryMcq', parentMcqText);
-  setUpdatedLabel('parentSummaryMcqUpdated', now);
-
-  const feeSummary = parentProfile.report?.feeSummary || null;
+  // ── Parent fee card (existing HTML) ──
+  const feeSummary = report?.feeSummary || null;
   if (feeSummary || parentStudent?.class) {
     setElementText('parentFeeBatch', parentStudent?.class ? `Class ${parentStudent.class}` : 'Linked batch');
-    setElementText('parentFeeStatus', feeSummary?.pending ? 'Pending' : 'Paid');
+    const pendingAmt = Number(feeSummary?.pending || 0);
+    setElementText('parentFeeStatus', feeSummary ? (pendingAmt > 0 ? `Rs ${pendingAmt} pending` : 'Paid up') : 'No entries yet');
     setElementText('parentFeePaid', `Rs ${feeSummary?.totalPaid || 0}`);
     setElementText('parentFeePending', `Rs ${feeSummary?.pending || 0}`);
-  }
-  const feeDueValue = feeSummary?.pending || 0;
-  setElementText('parentSummaryFee', `Rs ${feeDueValue}`);
-  setUpdatedLabel('parentSummaryFeeUpdated', now);
-  setUpdatedLabel('parentFeeUpdated', now);
-
-  const lastPaid = feeSummary?.payments?.length ? feeSummary.payments[0].paid_on : null;
-  const lastPaidRow = document.getElementById('parentFeeLastPaid');
-  if (lastPaidRow) {
-    const valueNode = lastPaidRow.querySelector('.metric-value');
-    if (valueNode) valueNode.textContent = lastPaid || '-';
+    setUpdatedLabel('parentFeeUpdated', now);
   }
 
-  renderParentSupplementalWidgets(parentProfile);
+  // ── Render all extra parent widgets ──
+  if (role === 'parent' && (parentMonth || parentStudent?.name)) {
+    if (typeof injectParentTabData === 'function') {
+      injectParentTabData(report, parentStudent);
+    }
+  }
+
+  renderTodayTimetableReminder();
 }
 
 function updateHomeForSession() {
@@ -1114,27 +858,17 @@ function updateHomeForSession() {
   teacherHiddenSections.forEach((section) => { if (section) section.style.display = role === 'teacher' ? 'none' : ''; });
 
   if (role === 'student') {
-    studentTab?.classList.add('active');
-    parentTab?.classList.remove('active');
-    teacherTab?.classList.remove('active');
-    studentContent?.classList.add('active');
-    parentContent?.classList.remove('active');
-    teacherContent?.classList.remove('active');
+    studentTab?.classList.add('active'); parentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
+    studentContent?.classList.add('active'); parentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
   } else if (role === 'parent') {
-    parentTab?.classList.add('active');
-    studentTab?.classList.remove('active');
-    teacherTab?.classList.remove('active');
-    parentContent?.classList.add('active');
-    studentContent?.classList.remove('active');
-    teacherContent?.classList.remove('active');
+    parentTab?.classList.add('active'); studentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
+    parentContent?.classList.add('active'); studentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
+    // Ensure parent extra widgets exist
+    if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
   } else if (role === 'teacher') {
-    teacherTab?.classList.add('active');
-    studentTab?.classList.remove('active');
-    parentTab?.classList.remove('active');
-    teacherContent?.classList.add('active');
-    if (teacherContent) teacherContent.style.display = 'block';
-    studentContent?.classList.remove('active');
-    parentContent?.classList.remove('active');
+    teacherTab?.classList.add('active'); studentTab?.classList.remove('active'); parentTab?.classList.remove('active');
+    if (teacherContent) { teacherContent.classList.add('active'); teacherContent.style.display = 'block'; }
+    studentContent?.classList.remove('active'); parentContent?.classList.remove('active');
   }
 
   renderNavProfile();
@@ -1142,6 +876,7 @@ function updateHomeForSession() {
   updateDashboardAttendanceCards();
 }
 
+// ── TEACHER FUNCTIONS ─────────────────────────────────────────────────────────
 function setDefaultTeacherDate() {
   const input = document.getElementById('teacherAttendanceDate');
   if (!input || input.value) return;
@@ -1153,9 +888,7 @@ function setDefaultTeacherDate() {
 function renderTeacherSheetInfo(sheetPath) {
   const info = document.getElementById('teacherSheetInfo');
   if (!info) return;
-  info.textContent = sheetPath
-    ? 'Attendance sheet: ' + sheetPath
-    : 'Attendance sheet will be generated after saving.';
+  info.textContent = sheetPath ? 'Attendance sheet: ' + sheetPath : 'Attendance sheet will be generated after saving.';
 }
 
 let teacherStudentCache = [];
@@ -1169,34 +902,16 @@ function renderTeacherMcqCards(count = 10) {
   wrap.innerHTML = Array.from({ length: safeCount }, (_, index) => `
     <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px;">
       <div style="font-size:0.78rem;color:var(--blue);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Question ${index + 1}</div>
-      <div class="form-group" style="margin:0 0 10px 0;">
-        <label>Question Text</label>
-        <textarea id="teacherMcqQuestion${index + 1}" rows="3" placeholder="Enter question ${index + 1}"></textarea>
-      </div>
-      <div class="form-group" style="margin:0 0 10px 0;">
-        <label>Question Image URL / Path</label>
-        <input type="text" id="teacherMcqQuestionImage${index + 1}" placeholder="Paste image URL or path (optional)" />
-      </div>
+      <div class="form-group" style="margin:0 0 10px 0;"><label>Question Text</label><textarea id="teacherMcqQuestion${index + 1}" rows="3" placeholder="Enter question ${index + 1}"></textarea></div>
+      <div class="form-group" style="margin:0 0 10px 0;"><label>Question Image URL / Path</label><input type="text" id="teacherMcqQuestionImage${index + 1}" placeholder="Paste image URL or path (optional)" /></div>
       ${[1, 2, 3, 4].map((optionNumber) => `
         <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;">
-          <div class="form-group" style="margin:0;">
-            <label>Option ${optionNumber} Text</label>
-            <input type="text" id="teacherMcq${index + 1}Option${optionNumber}" placeholder="Option ${optionNumber} text" />
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label>Option ${optionNumber} Image URL / Path</label>
-            <input type="text" id="teacherMcq${index + 1}Option${optionNumber}Image" placeholder="Paste option ${optionNumber} image URL or path (optional)" />
-          </div>
+          <div class="form-group" style="margin:0;"><label>Option ${optionNumber} Text</label><input type="text" id="teacherMcq${index + 1}Option${optionNumber}" placeholder="Option ${optionNumber} text" /></div>
+          <div class="form-group" style="margin:0;"><label>Option ${optionNumber} Image URL / Path</label><input type="text" id="teacherMcq${index + 1}Option${optionNumber}Image" placeholder="Paste option ${optionNumber} image URL or path (optional)" /></div>
         </div>
       `).join('')}
-      <div class="form-group" style="margin:0;">
-        <label>Correct Option</label>
-        <select id="teacherMcq${index + 1}Correct">
-          <option value="0">Option 1</option>
-          <option value="1">Option 2</option>
-          <option value="2">Option 3</option>
-          <option value="3">Option 4</option>
-        </select>
+      <div class="form-group" style="margin:0;"><label>Correct Option</label>
+        <select id="teacherMcq${index + 1}Correct"><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select>
       </div>
     </div>
   `).join('');
@@ -1232,19 +947,18 @@ function renderTeacherMcqList(mcqs) {
     body.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No daily MCQ batches posted yet.</div>';
     return;
   }
-
   body.innerHTML = mcqs.map((mcq, index) => {
     const total = Number(mcq.submission_count || 0);
     const correct = Number(mcq.correct_count || 0);
     const accuracy = total ? Math.round((correct / total) * 100) : 0;
     const studentReports = Array.isArray(mcq.student_reports) ? mcq.student_reports : [];
-    const attempted = studentReports.filter((student) => student.attemptedCount > 0);
-    const notAttempted = studentReports.filter((student) => student.attemptedCount === 0);
+    const attempted = studentReports.filter((s) => s.attemptedCount > 0);
+    const notAttempted = studentReports.filter((s) => s.attemptedCount === 0);
     const attemptedHtml = attempted.length
-      ? attempted.map((student) => `<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);"><div><div style="font-weight:700;">${student.name}</div><div style="font-size:0.8rem;color:var(--muted);">Class ${student.class} - ${student.email || 'No email'}</div></div><div style="text-align:right;"><div style="font-weight:700;color:var(--green);">${student.score}</div><div style="font-size:0.8rem;color:var(--muted);">Attempted ${student.attemptedCount}, Wrong ${student.wrongCount}</div></div></div>`).join('')
+      ? attempted.map((s) => `<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);"><div><div style="font-weight:700;">${s.name}</div><div style="font-size:0.8rem;color:var(--muted);">Class ${s.class} - ${s.email || 'No email'}</div></div><div style="text-align:right;"><div style="font-weight:700;color:var(--green);">${s.score}</div><div style="font-size:0.8rem;color:var(--muted);">Attempted ${s.attemptedCount}, Wrong ${s.wrongCount}</div></div></div>`).join('')
       : '<div style="color:var(--muted);font-size:0.84rem;">No students have attempted this batch yet.</div>';
     const notAttemptedHtml = notAttempted.length
-      ? `<div style="margin-top:12px;color:var(--muted);font-size:0.82rem;line-height:1.7;"><strong style="color:var(--yellow);">Not attempted:</strong> ${notAttempted.map((student) => `${student.name} (Class ${student.class})`).join(', ')}</div>`
+      ? `<div style="margin-top:12px;color:var(--muted);font-size:0.82rem;line-height:1.7;"><strong style="color:var(--yellow);">Not attempted:</strong> ${notAttempted.map((s) => `${s.name} (Class ${s.class})`).join(', ')}</div>`
       : '<div style="margin-top:12px;color:var(--green);font-size:0.82rem;">All assigned students have attempted this batch.</div>';
     return `
       <div style="padding:${index ? '16px 0 0' : '0'};margin-top:${index ? '16px' : '0'};border-top:${index ? '1px solid rgba(255,255,255,0.06)' : 'none'};">
@@ -1255,14 +969,12 @@ function renderTeacherMcqList(mcqs) {
           </div>
           <div style="min-width:220px;text-align:right;">
             <div style="font-weight:700;color:var(--green);">${accuracy}% accuracy</div>
-            <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">${total} submissions - ${correct} correct</div>
-            <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Attempted students: ${mcq.attempted_students || 0} - Not attempted: ${mcq.not_attempted_students || 0}</div>
+            <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Attempted: ${mcq.attempted_students || 0} | Not attempted: ${mcq.not_attempted_students || 0}</div>
           </div>
         </div>
         <div style="margin-top:16px;padding:16px;border-radius:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
           <div style="font-size:0.76rem;color:var(--blue);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Student Scores</div>
-          ${attemptedHtml}
-          ${notAttemptedHtml}
+          ${attemptedHtml}${notAttemptedHtml}
         </div>
       </div>
     `;
@@ -1280,11 +992,7 @@ async function loadTeacherMcqs() {
 }
 
 async function createTeacherMcq() {
-  if (!hasActiveTeacherSession()) {
-    alert('Please login as teacher first.');
-    return;
-  }
-
+  if (!hasActiveTeacherSession()) { alert('Please login as teacher first.'); return; }
   const title = (document.getElementById('teacherMcqTitle')?.value || '').trim() || 'Daily MCQ Batch';
   const classScope = (document.getElementById('teacherMcqClass')?.value || 'all').trim();
   const questionCount = Math.max(1, Math.min(20, Number(document.getElementById('teacherMcqCount')?.value || 10)));
@@ -1295,17 +1003,10 @@ async function createTeacherMcq() {
     const correctIndex = Number(document.getElementById(`teacherMcq${index + 1}Correct`)?.value || 0);
     return { question, imageUrl, options, correctIndex };
   }).filter((item) => item.question || item.imageUrl || item.options.some((option) => option));
-
-  if (!questions.length) {
-    showTeacherMcqMessage('Add at least one MCQ card before posting.', true);
-    return;
-  }
-
+  if (!questions.length) { showTeacherMcqMessage('Add at least one MCQ card before posting.', true); return; }
   if (questions.some((item) => (!item.question && !item.imageUrl) || item.options.some((option) => !option))) {
-    showTeacherMcqMessage('Each filled MCQ card must have question text or image, plus 4 options.', true);
-    return;
+    showTeacherMcqMessage('Each filled MCQ card must have question text or image, plus 4 options.', true); return;
   }
-
   try {
     await API.createTeacherMcq({ title, classScope, questions });
     const titleNode = document.getElementById('teacherMcqTitle');
@@ -1321,17 +1022,14 @@ async function createTeacherMcq() {
 function renderTeacherPaperList(papers) {
   const wrap = document.getElementById('teacherPaperList');
   if (!wrap) return;
-  if (!papers.length) {
-    wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>';
-    return;
-  }
+  if (!papers.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>'; return; }
   wrap.innerHTML = papers.map((paper, index) => `
     <div style="padding:${index ? '16px 0 0' : '0'};margin-top:${index ? '16px' : '0'};border-top:${index ? '1px solid rgba(255,255,255,0.06)' : 'none'};display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
         <div style="font-weight:700;">${paper.title}</div>
         <div style="color:var(--muted);font-size:0.84rem;margin-top:4px;">Class ${paper.class_scope || 'all'} - ${paper.resource_type || 'document'} - ${paper.posted_at || ''}</div>
       </div>
-      <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open</a>
+      <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a>
     </div>
   `).join('');
 }
@@ -1351,16 +1049,10 @@ async function createTeacherQuestionPaper() {
   const classScope = (document.getElementById('teacherPaperClass')?.value || 'all').trim();
   const resourceType = (document.getElementById('teacherPaperType')?.value || 'pdf').trim();
   const resourceUrl = (document.getElementById('teacherPaperUrl')?.value || '').trim();
-  if (!title || !resourceUrl) {
-    showTeacherPanelMessage('teacherPaperMessage', 'Please enter a title and the document URL/path.', true);
-    return;
-  }
+  if (!title || !resourceUrl) { showTeacherPanelMessage('teacherPaperMessage', 'Please enter a title and the document URL/path.', true); return; }
   try {
     await API.createTeacherQuestionPaper({ title, classScope, resourceType, resourceUrl });
-    ['teacherPaperTitle','teacherPaperUrl'].forEach((id) => {
-      const node = document.getElementById(id);
-      if (node) node.value = '';
-    });
+    ['teacherPaperTitle', 'teacherPaperUrl'].forEach((id) => { const node = document.getElementById(id); if (node) node.value = ''; });
     showTeacherPanelMessage('teacherPaperMessage', 'Question paper added successfully.', false);
     await loadTeacherQuestionPapers();
   } catch (err) {
@@ -1371,10 +1063,7 @@ async function createTeacherQuestionPaper() {
 function renderTeacherWeeklyTestTable(students) {
   const body = document.getElementById('teacherWeeklyTestBody');
   if (!body) return;
-  if (!students.length) {
-    body.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--muted);">No students available.</td></tr>';
-    return;
-  }
+  if (!students.length) { body.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--muted);">No students available.</td></tr>'; return; }
   body.innerHTML = students.map((student) => `
     <tr data-student-id="${student.id}">
       <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.name}</td>
@@ -1390,10 +1079,7 @@ async function saveTeacherWeeklyTests() {
   const title = (document.getElementById('teacherWeeklyTestTitle')?.value || '').trim();
   const testDate = document.getElementById('teacherWeeklyTestDate')?.value || '';
   const totalMarks = Number(document.getElementById('teacherWeeklyTestTotal')?.value || 100);
-  if (!title || !testDate) {
-    showTeacherPanelMessage('teacherWeeklyTestMessage', 'Please enter the weekly test title and date.', true);
-    return;
-  }
+  if (!title || !testDate) { showTeacherPanelMessage('teacherWeeklyTestMessage', 'Please enter the weekly test title and date.', true); return; }
   const entries = teacherStudentCache.map((student) => ({
     studentId: student.id,
     marksObtained: document.getElementById('weekly-marks-' + student.id)?.value || '',
@@ -1411,10 +1097,7 @@ async function saveTeacherWeeklyTests() {
 function renderTeacherFeeTable(students) {
   const body = document.getElementById('teacherFeeBody');
   if (!body) return;
-  if (!students.length) {
-    body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students available.</td></tr>';
-    return;
-  }
+  if (!students.length) { body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students available.</td></tr>'; return; }
   body.innerHTML = students.map((student) => {
     const fee = student.feeSummary || {};
     return `
@@ -1423,7 +1106,7 @@ function renderTeacherFeeTable(students) {
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Class ${student.class}</td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Rs ${fee.totalDue || 0}</td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Rs ${fee.totalPaid || 0}</td>
-        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Rs ${fee.pending || 0}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);color:${Number(fee.pending || 0) > 0 ? 'var(--pink)' : 'var(--green)'};">Rs ${fee.pending || 0}</td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="number" min="0" id="fee-paid-${student.id}" placeholder="Amount paid" style="width:140px;" /></td>
       </tr>
     `;
@@ -1432,10 +1115,7 @@ function renderTeacherFeeTable(students) {
 
 async function saveTeacherFees() {
   const paidOn = document.getElementById('teacherFeeDate')?.value || '';
-  if (!paidOn) {
-    showTeacherPanelMessage('teacherFeeMessage', 'Please choose the payment date.', true);
-    return;
-  }
+  if (!paidOn) { showTeacherPanelMessage('teacherFeeMessage', 'Please choose the payment date.', true); return; }
   const entries = teacherStudentCache.map((student) => ({
     studentId: student.id,
     amountPaid: document.getElementById('fee-paid-' + student.id)?.value || 0
@@ -1452,12 +1132,7 @@ async function saveTeacherFees() {
 function renderTeacherAttendanceTable(students) {
   const body = document.getElementById('teacherAttendanceBody');
   if (!body) return;
-
-  if (!students.length) {
-    body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students registered yet.</td></tr>';
-    return;
-  }
-
+  if (!students.length) { body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students registered yet.</td></tr>'; return; }
   body.innerHTML = students.map((student) => {
     const attendance = student.attendance || {};
     const percentage = Number(attendance.percentage || 0);
@@ -1473,8 +1148,8 @@ function renderTeacherAttendanceTable(students) {
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.mobile || 'Not available'}</td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${percentage}% <span style="color:var(--muted);">(${attendance.present || 0}/${attendance.total || 0})</span></td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">
-          <label style="margin-right:12px;"><input type="radio" name="attendance-${student.id}" value="present" ${currentStatus === 'present' ? 'checked' : ''}> Present</label>
-          <label><input type="radio" name="attendance-${student.id}" value="absent" ${currentStatus === 'absent' ? 'checked' : ''}> Absent</label>
+          <label style="margin-right:12px;cursor:pointer;"><input type="radio" name="attendance-${student.id}" value="present" ${currentStatus === 'present' ? 'checked' : ''}> Present</label>
+          <label style="cursor:pointer;"><input type="radio" name="attendance-${student.id}" value="absent" ${currentStatus === 'absent' ? 'checked' : ''}> Absent</label>
         </td>
         <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">
           <select id="approval-${student.id}" style="min-width:140px;">
@@ -1496,6 +1171,7 @@ function showTeacherAttendanceMessage(message, isError) {
   box.textContent = message;
 }
 
+// ── DOUBTS ────────────────────────────────────────────────────────────────────
 async function loadStudentDoubts() {
   if (!hasActiveStudentSession()) return;
   const wrap = document.getElementById('studentDoubtList');
@@ -1530,7 +1206,6 @@ async function loadStudentDoubts() {
         </div>
       `;
     }).join('');
-
     if (popupStack) {
       popupStack.innerHTML = answeredDoubts.slice(0, 2).map((doubt, index) => `
         <div class="doubt-popup show">
@@ -1552,10 +1227,7 @@ async function loadTeacherDoubts() {
   try {
     const data = await API.getTeacherDoubts();
     const doubts = data.doubts || [];
-    if (!doubts.length) {
-      wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No student doubts submitted yet.</div>';
-      return;
-    }
+    if (!doubts.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No student doubts submitted yet.</div>'; return; }
     wrap.innerHTML = doubts.map((doubt) => {
       const isAnswered = doubt.status === 'answered';
       return `
@@ -1591,10 +1263,7 @@ async function loadTeacherDoubts() {
 async function answerTeacherDoubt(id) {
   const text = (document.getElementById('doubt-answer-' + id)?.value || '').trim();
   const image = (document.getElementById('doubt-answer-img-' + id)?.value || '').trim();
-  if (!text) {
-    alert('Please enter a reply.');
-    return;
-  }
+  if (!text) { alert('Please enter a reply.'); return; }
   try {
     await API.answerTeacherDoubt(id, text, image || null);
     await loadTeacherDoubts();
@@ -1603,6 +1272,7 @@ async function answerTeacherDoubt(id) {
     alert(err.message || 'Could not send reply.');
   }
 }
+
 async function loadTeacherAttendance() {
   if (!hasActiveTeacherSession()) return;
   setDefaultTeacherDate();
@@ -1611,9 +1281,8 @@ async function loadTeacherAttendance() {
   const feeDate = document.getElementById('teacherFeeDate');
   if (weeklyDate && !weeklyDate.value) weeklyDate.value = attendanceDate;
   if (feeDate && !feeDate.value) feeDate.value = attendanceDate;
-  const date = attendanceDate;
   try {
-    const data = await API.getTeacherStudents(date);
+    const data = await API.getTeacherStudents(attendanceDate);
     teacherStudentCache = data.students || [];
     renderTeacherAttendanceTable(teacherStudentCache);
     renderTeacherWeeklyTestTable(teacherStudentCache);
@@ -1627,24 +1296,15 @@ async function loadTeacherAttendance() {
 }
 
 async function saveTeacherAttendance() {
-  if (!hasActiveTeacherSession()) {
-    alert('Please login as teacher first.');
-    return;
-  }
-
+  if (!hasActiveTeacherSession()) { alert('Please login as teacher first.'); return; }
   const date = document.getElementById('teacherAttendanceDate')?.value;
-  if (!date) {
-    showTeacherAttendanceMessage('Please choose an attendance date.', true);
-    return;
-  }
-
+  if (!date) { showTeacherAttendanceMessage('Please choose an attendance date.', true); return; }
   const rows = Array.from(document.querySelectorAll('#teacherAttendanceBody tr[data-student-id]')).map((row) => {
     const studentId = Number(row.dataset.studentId || 0);
     const selected = row.querySelector('input[type="radio"]:checked');
     const approval = row.querySelector('select');
     return studentId ? { studentId, status: selected ? selected.value : 'present', approvalStatus: approval ? approval.value : 'accepted' } : null;
   }).filter(Boolean);
-
   try {
     const result = await API.saveTeacherAttendance(date, rows);
     renderTeacherSheetInfo(result.sheetPath || '');
@@ -1656,33 +1316,11 @@ async function saveTeacherAttendance() {
   }
 }
 
-window.addEventListener('load', async () => {
-  renderTeacherMcqCards();
-  await refreshRoleData();
-  updateHomeForSession();
-  loadStudentDoubts();
-  if (hasActiveTeacherSession()) loadTeacherDoubts();
-  if (hasActiveTeacherSession()) {
-    loadTeacherAttendance();
-    loadTeacherMcqs();
-    if (window.location.hash === '#teacher-dashboard') {
-      const teacherTab = document.getElementById('teacherDashTab');
-      if (teacherTab) switchTab('teacher', teacherTab);
-    }
-  }
-});
-
-
-
-
-
-
-
-
+// ── MCQ & PAPERS — STUDENT ────────────────────────────────────────────────────
 async function submitDailyMcqAnswer(mcqId, optionIndex) {
   try {
     const result = await API.submitStudentDailyMcq(mcqId, optionIndex);
-    alert(result.isCorrect ? 'Correct answer!' : 'Answer saved.');
+    alert(result.isCorrect ? 'Correct answer! ✓' : 'Answer saved.');
   } catch (err) {
     alert(err.message || 'Could not submit MCQ answer.');
   }
@@ -1691,32 +1329,19 @@ async function submitDailyMcqAnswer(mcqId, optionIndex) {
 async function renderQuestionPapers(role) {
   const list = document.getElementById('studentPaperList');
   if (!list) return;
-
   try {
-    const data = role === 'parent'
-      ? await API.getParentQuestionPapers()
-      : await API.getStudentQuestionPapers();
-
+    const data = role === 'parent' ? await API.getParentQuestionPapers() : await API.getStudentQuestionPapers();
     const papers = data.papers || [];
-    const paperSummary = document.getElementById('studentPaperSummaryDashboard');
-    if (paperSummary && role === 'student') {
-      paperSummary.textContent = papers.length ? (papers.length + ' paper(s) available') : 'No question papers posted yet.';
-    }
-    if (role === 'student') setUpdatedLabel('studentPaperUpdated', new Date());
-    if (!papers.length) {
-      list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>';
-      return;
-    }
-
-    list.innerHTML = papers.map((paper) => (
-      `<div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:center;">
+    if (!papers.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>'; return; }
+    list.innerHTML = papers.map((paper) => `
+      <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:center;">
         <div>
           <div style="font-weight:700;">${paper.title}</div>
           <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Class ${paper.class_scope || 'all'} - ${paper.resource_type || 'document'} - ${paper.posted_at || ''}</div>
         </div>
-        <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open</a>
+        <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a>
       </div>`
-    )).join('');
+    ).join('');
   } catch (err) {
     list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">Unable to load question papers.</div>';
   }
@@ -1729,44 +1354,25 @@ async function loadStudentResources() {
   await renderQuestionPapers(role);
 }
 
-window.addEventListener('load', () => {
-  loadStudentResources();
-});
-
 async function renderDailyMcqs(role) {
   const summary = document.getElementById('studentMcqSummary');
   const list = document.getElementById('studentMcqList');
   if (!summary || !list) return;
-
   try {
-    const data = role === 'parent'
-      ? await API.getParentDailyMcqs()
-      : await API.getStudentDailyMcqs();
-
+    const data = role === 'parent' ? await API.getParentDailyMcqs() : await API.getStudentDailyMcqs();
     const mcqs = data.mcqs || [];
     summary.textContent = data.batchTitle
       ? `${data.batchTitle} - ${mcqs.length} question(s)${data.availableUntil ? ' - ends ' + data.availableUntil : ''}`
       : 'No active MCQ batch yet.';
-
-    const summaryDashboard = document.getElementById('studentMcqSummaryDashboard');
-    if (summaryDashboard && role === 'student') summaryDashboard.textContent = summary.textContent;
-    if (role === 'student') setUpdatedLabel('studentMcqUpdated', new Date());
-
-    if (!mcqs.length) {
-      list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No MCQs available right now.</div>';
-      return;
-    }
-
+    if (!mcqs.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No MCQs available right now.</div>'; return; }
     if (role === 'parent') {
-      list.innerHTML = mcqs.map((mcq, idx) => (
-        `<div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);">
+      list.innerHTML = mcqs.map((mcq, idx) => `
+        <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);">
           <div style="font-weight:700;">${mcq.question || 'Question ' + (idx + 1)}</div>
-          <div style="color:var(--muted);font-size:0.82rem;margin-top:6px;">Student can attempt this MCQ in their dashboard.</div>
-        </div>`
-      )).join('');
+          <div style="color:var(--muted);font-size:0.82rem;margin-top:6px;">Student can attempt this in their dashboard.</div>
+        </div>`).join('');
       return;
     }
-
     list.innerHTML = mcqs.map((mcq, idx) => {
       const options = Array.isArray(mcq.options) ? mcq.options : [];
       const questionLabel = mcq.question ? mcq.question : 'Question ' + (idx + 1);
@@ -1776,15 +1382,13 @@ async function renderDailyMcqs(role) {
           <button class="btn-outline-sm" style="text-align:left;display:grid;gap:8px;" onclick="submitDailyMcqAnswer(${mcq.id}, ${optIndex})">
             ${option.text ? `<span>${String.fromCharCode(65 + optIndex)}. ${option.text}</span>` : `<span>${String.fromCharCode(65 + optIndex)}.</span>`}
             ${option.imageUrl ? `<img src="${option.imageUrl}" alt="Option ${optIndex + 1}" style="max-width:180px;width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.08);display:block;" />` : ''}
-          </button>
-        `;
+          </button>`;
       }).join('');
       return `
         <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:10px;">
           <div style="font-weight:700;">${questionLabel}</div>
           <div style="display:grid;gap:8px;">${optionHtml}</div>
-        </div>
-      `;
+        </div>`;
     }).join('');
   } catch (err) {
     summary.textContent = err.message || 'Unable to load MCQs.';
@@ -1792,6 +1396,35 @@ async function renderDailyMcqs(role) {
   }
 }
 
+// ── PAGE LOAD ─────────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  renderTeacherMcqCards();
+
+  const role = getCurrentRole();
+
+  if (role === 'student') {
+    await refreshRoleData();
+    updateHomeForSession();
+    loadStudentResources();
+    loadStudentDoubts();
+  } else if (role === 'parent') {
+    updateHomeForSession();
+    await refreshParentDashboard();
+    loadStudentResources();
+  } else if (role === 'teacher') {
+    await refreshRoleData();
+    updateHomeForSession();
+    loadTeacherAttendance();
+    loadTeacherMcqs();
+    loadTeacherDoubts();
+    if (window.location.hash === '#teacher-dashboard') {
+      const teacherTab = document.getElementById('teacherDashTab');
+      if (teacherTab) switchTab('teacher', teacherTab);
+    }
+  } else {
+    updateHomeForSession();
+  }
+});
 
 
 
