@@ -588,8 +588,8 @@ db.exec(`
 ].forEach((sql) => { try { db.prepare(sql).run(); } catch (e) { /* already exists — ignore */ } });
 
 // Partial unique indexes for nullable google_sub
-try { db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_students_google_sub ON students (google_sub) WHERE google_sub IS NOT NULL').run(); } catch (e) { /* ignore */ }
-try { db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_google_sub ON teachers (google_sub) WHERE google_sub IS NOT NULL').run(); } catch (e) { /* ignore */ }
+try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_students_google_sub ON students (google_sub) WHERE google_sub IS NOT NULL'); } catch (e) { /* ignore */ }
+try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_google_sub ON teachers (google_sub) WHERE google_sub IS NOT NULL'); } catch (e) { /* ignore */ }
 
 seedDefaultTeacher();
 refreshSheets();
