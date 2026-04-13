@@ -185,6 +185,10 @@ const API = {
     return this.get('/student/daily-mcqs', this.token());
   },
 
+  getStudentQuestionPapers() {
+    return this.get('/student/question-papers', this.token());
+  },
+
   submitStudentDailyMcq(mcqId, selectedIndex) {
     return this.post('/student/daily-mcqs/' + mcqId + '/submit', { selectedIndex }, this.token());
   },
@@ -247,6 +251,5 @@ const API = {
     console.warn('[I LEARN API] Backend not reachable. Running in demo mode.');
   }
 })();
-
 
 
