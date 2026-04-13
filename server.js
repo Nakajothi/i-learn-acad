@@ -734,6 +734,19 @@ db.exec(`
     status      TEXT    DEFAULT 'present',
     UNIQUE(student_id, date)
   );
+
+  CREATE TABLE IF NOT EXISTS doubts (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id     INTEGER NOT NULL REFERENCES students(id),
+    teacher_id     INTEGER REFERENCES teachers(id),
+    question_text  TEXT    NOT NULL,
+    question_image TEXT,
+    answer_text    TEXT,
+    answer_image   TEXT,
+    status         TEXT    DEFAULT 'open',
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    answered_at    DATETIME
+  );
 `);
 try { db.exec('ALTER TABLE students ADD COLUMN google_sub TEXT'); } catch {} 
 try { db.exec("ALTER TABLE students ADD COLUMN subject TEXT DEFAULT 'maths'"); } catch {}
@@ -2191,56 +2204,4 @@ Routes ready:
   `);
 });
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS doubts (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id     INTEGER NOT NULL REFERENCES students(id),
-    teacher_id     INTEGER REFERENCES teachers(id),
-    question_text  TEXT    NOT NULL,
-    question_image TEXT,
-    answer_text    TEXT,
-    answer_image   TEXT,
-    status         TEXT    DEFAULT 'open',
-    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-    answered_at    DATETIME
-  );
-`);
 
