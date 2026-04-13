@@ -119,7 +119,7 @@ function studentHubMarkup(data) {
         ${questionPapers.length ? questionPapers.map((paper) => `
           <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);color:#E8E8F5;text-decoration:none;">
             <span>${paper.title}</span>
-            <span style="color:#B6B6D6;font-size:0.84rem;">${paper.resource_type || 'document'} � ${paper.posted_at || ''}</span>
+            <span style="color:#B6B6D6;font-size:0.84rem;">${paper.resource_type || 'document'} · ${paper.posted_at || ''}</span>
           </a>
         `).join('') : '<div style="color:#B6B6D6;font-size:0.88rem;">No question papers posted yet.</div>'}
       </div>
@@ -152,7 +152,13 @@ function studentHubMarkup(data) {
         <div style="margin-top:14px;display:grid;gap:12px;">
           <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Total Fee</span><strong>Rs ${feeSummary.totalDue || 0}</strong></div>
           <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Paid</span><strong>Rs ${feeSummary.totalPaid || 0}</strong></div>
-          <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Pending</span><strong>Rs ${feeSummary.pending || 0}</strong></div>
+          <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Pending</span><strong style="color:${feeSummary.pending > 0 ? '#FF2D78' : '#00E5A0'}">Rs ${feeSummary.pending || 0}</strong></div>
+          ${(feeSummary.payments || []).slice(0, 3).map(p => `
+            <div style="padding:10px 16px;border-radius:12px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:0.84rem;">
+              <span style="color:#B6B6D6;">Paid on ${p.paid_on}</span>
+              <strong style="color:#00E5A0;">Rs ${p.amount_paid}</strong>
+            </div>
+          `).join('')}
         </div>
       ` : '<div style="margin-top:14px;color:#B6B6D6;font-size:0.88rem;">Fee summary will appear here once entries are added.</div>'}
     </div>
@@ -207,6 +213,8 @@ async function setupStudentDashboard() {
   }
 }
 
+// ── PARENT DASHBOARD (ai-parentreport.html) ─────────────────────────────────
+
 async function setupParentDashboard() {
   if (!localStorage.getItem('ilearn_parent_token')) {
     window.location.href = 'index.html';
@@ -217,16 +225,23 @@ async function setupParentDashboard() {
     const data = await API.getParentReport();
     const student = data.student;
     const report = data.report || data || {};
-    const aiData = await API.getParentAIReport().catch(() => ({
-      overallSummary: (student?.name || 'Student') + ' has a clear progress snapshot ready for review.',
-      highlights: ['Attendance and latest assessment data are available.'],
-      concerns: report.weakTopics?.length ? ['Needs support in: ' + report.weakTopics.join(', ')] : [],
-      parentTips: ['Review the weak topics together for 15 minutes daily.'],
-      nextWeekFocus: report.weakTopics?.length ? report.weakTopics.join(', ') : 'Continue consistent practice.'
-    }));
+
+    // Build AI report
+    let aiData;
+    try {
+      aiData = await API.getParentAIReport();
+    } catch (e) {
+      aiData = buildFallbackAiReport(student, report);
+    }
+    if (!aiData || (!aiData.overallSummary && !aiData.aiReport)) {
+      aiData = buildFallbackAiReport(student, report);
+    }
+    // Handle both wrapped and unwrapped response formats
+    if (aiData.aiReport) aiData = aiData.aiReport;
 
     const topbar = document.querySelector('.topbar');
     if (topbar && student && !document.getElementById('roleDashboardProfile')) {
+      const monthAtt = report.attendanceSummary?.month || report.attendance || {};
       topbar.insertAdjacentHTML('afterend', dashboardProfileMarkup(
         'Parent Profile',
         'Parent of ' + student.name,
@@ -235,7 +250,7 @@ async function setupParentDashboard() {
           { label: 'Student', value: student.name },
           { label: 'Class', value: 'Class ' + student.class },
           { label: 'Mobile', value: student.mobile || 'Not available' },
-          { label: 'Attendance', value: formatAttendanceLabel(report.attendance?.present, report.attendance?.total) }
+          { label: 'Attendance', value: formatAttendanceLabel(monthAtt.present, monthAtt.total) }
         ],
         'Logout',
         'API.logoutParent'
@@ -244,21 +259,27 @@ async function setupParentDashboard() {
 
     if (typeof renderReport === 'function' && student) {
       const assessments = report.assessmentHistory || [];
+      const latest = report.latestAssessment || assessments[0] || null;
       const previous = assessments[1] || null;
       const previousTopics = previous?.topic_scores ? JSON.parse(previous.topic_scores || '{}') : {};
-      const topicEntries = Object.entries(report.topicScores || {});
+      const topicScores = latest?.topic_scores ? JSON.parse(latest.topic_scores || '{}') : report.topicScores || {};
+      const topicEntries = Object.entries(topicScores);
+
+      const monthAtt = report.attendanceSummary?.month || report.attendance || {};
+      const overallAtt = report.attendanceSummary?.overall || monthAtt;
+
       const demo = {
-        attendance: report.attendance?.present || 0,
-        totalDays: report.attendance?.total || 24,
+        attendance: Number(monthAtt.present) || 0,
+        totalDays: Number(monthAtt.total) || 24,
         testsCompleted: assessments.length,
         testsTotal: Math.max(assessments.length, 1),
-        avgScore: report.latestTotal ? Math.round((report.latestScore / report.latestTotal) * 100) : 0,
+        avgScore: latest?.total ? Math.round((latest.score / latest.total) * 100) : (report.latestTotal ? Math.round((report.latestScore / report.latestTotal) * 100) : 0),
         prevScore: previous?.total ? Math.round((previous.score / previous.total) * 100) : 0,
         rank: 1,
         batchSize: 1,
         weeklySummary: report.weeklySummary || null,
-        weakTopics: report.weakTopics || [],
-        strongTopics: report.strongTopics || [],
+        weakTopics: report.weakTopics || (latest?.weak_topics ? JSON.parse(latest.weak_topics || '[]') : []),
+        strongTopics: report.strongTopics || (latest?.strong_topics ? JSON.parse(latest.strong_topics || '[]') : []),
         recentMcqs: report.recentMcqs || [],
         weeklyTests: report.weeklyTests || [],
         questionPapers: report.questionPapers || [],
@@ -273,7 +294,180 @@ async function setupParentDashboard() {
       renderReport(student.name, 'Class ' + student.class, 'Latest Update', demo, aiData);
     }
   } catch (err) {
-    API.logoutParent();
+    console.error('Parent dashboard error:', err);
+    // Don't auto-logout — show an error instead
+    const main = document.getElementById('mainContent');
+    if (main) {
+      main.innerHTML = `
+        <h1>Parent Dashboard</h1>
+        <p style="color:var(--muted);margin-top:12px;">Could not load report: ${err.message || 'Unknown error'}.</p>
+        <button class="btn-primary" style="margin-top:20px;" onclick="API.logoutParent()">Logout</button>
+      `;
+    }
+  }
+}
+
+function buildFallbackAiReport(student, report) {
+  const name = student?.name || 'Student';
+  const weakTopics = report.weakTopics || [];
+  const strongTopics = report.strongTopics || [];
+  const latestScore = report.latestTotal ? Math.round((report.latestScore / report.latestTotal) * 100) : 0;
+  const monthAtt = report.attendanceSummary?.month || report.attendance || {};
+  return {
+    overallSummary: `${name} is progressing steadily. Latest assessment score: ${latestScore}%. Attendance this month: ${monthAtt.present || 0}/${monthAtt.total || 0} days.`,
+    highlights: [
+      strongTopics.length ? 'Strong topics: ' + strongTopics.join(', ') : 'Keep encouraging regular practice.',
+      'Attendance is being tracked and updated by the teacher.'
+    ],
+    concerns: weakTopics.length ? ['Needs extra attention in: ' + weakTopics.join(', ') + '.'] : ['No major weak topics identified yet.'],
+    parentTips: [
+      'Ask your child to revise one weak topic for 20–30 minutes daily.',
+      'Review attendance and weekly test performance together each week.'
+    ],
+    nextWeekFocus: weakTopics.length ? `Focus on ${weakTopics[0]} and keep practicing recent test topics.` : 'Maintain consistency with revision and daily practice.'
+  };
+}
+
+// ── INDEX.HTML PARENT TAB — live data injection ──────────────────────────────
+
+function injectParentTabData(report, student) {
+  const monthAtt = report.attendanceSummary?.month || report.attendance || {};
+  const overallAtt = report.attendanceSummary?.overall || monthAtt;
+  const feeSummary = report.feeSummary || null;
+  const weeklyTests = report.weeklyTests || [];
+  const dailyMcqSet = report.dailyMcqSet || {};
+  const mcqQuestions = Array.isArray(dailyMcqSet.questions) ? dailyMcqSet.questions : [];
+  const questionPapers = report.questionPapers || [];
+  const weakTopics = report.weakTopics || [];
+  const strongTopics = report.strongTopics || [];
+  const latestAssessment = report.latestAssessment || null;
+
+  // Attendance
+  setElementText('parentAttendanceMonth', `${monthAtt.present || 0} / ${monthAtt.total || 0} days`);
+  setElementText('parentAttendanceOverall', `${overallAtt.percentage || 0}%`);
+  setElementText('parentAttendanceStudent', student?.name || 'Linked student');
+  setElementText('parentAttendanceProgressLabel', `${overallAtt.percentage || 0}%`);
+  setElementWidth('parentAttendanceProgress', `${Math.max(0, Math.min(100, Number(overallAtt.percentage || 0)))}%`);
+  setUpdatedLabel('parentAttendanceUpdated', new Date());
+
+  // Fees
+  if (feeSummary) {
+    setElementText('parentFeeBatch', student?.class ? `Class ${student.class}` : 'Linked batch');
+    setElementText('parentFeeStatus', feeSummary.pending > 0 ? `Rs ${feeSummary.pending} pending` : 'Paid up');
+    setElementText('parentFeePaid', `Rs ${feeSummary.totalPaid || 0}`);
+    setElementText('parentFeePending', `Rs ${feeSummary.pending || 0}`);
+    setUpdatedLabel('parentFeeUpdated', new Date());
+
+    // Last payment
+    const lastPaidRow = document.getElementById('parentFeeLastPaid');
+    if (lastPaidRow) {
+      const valueNode = lastPaidRow.querySelector('.metric-value');
+      if (valueNode && feeSummary.payments?.length) {
+        valueNode.textContent = `Rs ${feeSummary.payments[0].amount_paid} on ${feeSummary.payments[0].paid_on}`;
+      }
+    }
+  }
+
+  // Summary cards
+  setElementText('parentSummaryAttendance', `${overallAtt.percentage || 0}%`);
+  setUpdatedLabel('parentSummaryAttendanceUpdated', new Date());
+
+  const answered = mcqQuestions.filter(q => q.selected_index !== null && q.selected_index !== undefined);
+  const correct = answered.filter(q => q.is_correct === 1 || q.is_correct === true).length;
+  setElementText('parentSummaryMcq', mcqQuestions.length ? `${correct}/${mcqQuestions.length} correct` : 'No MCQ yet');
+  setUpdatedLabel('parentSummaryMcqUpdated', new Date());
+
+  setElementText('parentSummaryFee', `Rs ${feeSummary?.pending || 0}`);
+  setUpdatedLabel('parentSummaryFeeUpdated', new Date());
+
+  // Extra widgets
+  ensureParentExtraWidgets();
+
+  const weeklyWrap = document.getElementById('parentWeeklyTests');
+  if (weeklyWrap) {
+    if (!weeklyTests.length) {
+      weeklyWrap.innerHTML = 'Weekly test marks will appear here once teachers enter them.';
+    } else {
+      weeklyWrap.innerHTML = weeklyTests.slice(0, 5).map(test => `
+        <div class="metric-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <span class="metric-label">${test.title || 'Test'} (${test.test_date || ''})</span>
+          <span class="metric-value">${Number(test.marks_obtained || 0)}/${Number(test.total_marks || 100)}</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  const mcqSummary = document.getElementById('parentMcqSummary');
+  if (mcqSummary) {
+    mcqSummary.textContent = dailyMcqSet.batchTitle
+      ? `${dailyMcqSet.batchTitle} — ${correct}/${mcqQuestions.length} correct`
+      : 'No active MCQ batch right now.';
+  }
+
+  const mcqList = document.getElementById('parentMcqList');
+  if (mcqList) {
+    mcqList.innerHTML = mcqQuestions.slice(0, 6).map((item, idx) => {
+      const attempted = item.selected_index !== null && item.selected_index !== undefined;
+      const isCorrect = item.is_correct === 1 || item.is_correct === true;
+      return `
+        <div style="padding:12px 0;border-top:1px solid rgba(255,255,255,0.06);">
+          <div style="font-weight:700;font-size:0.88rem;">Q${idx + 1}: ${item.question || 'Question'}</div>
+          <div style="font-size:0.82rem;margin-top:6px;color:${attempted ? (isCorrect ? '#00E5A0' : '#FFD166') : '#8888AA'};">
+            ${attempted ? (isCorrect ? '✓ Answered correctly' : '✗ Answered — needs review') : 'Not attempted yet'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Topic performance card
+  const topicScores = latestAssessment?.topic_scores ? JSON.parse(latestAssessment.topic_scores || '{}') : {};
+  const topicWrap = document.getElementById('parentTopicProgress');
+  if (topicWrap && Object.keys(topicScores).length) {
+    topicWrap.innerHTML = Object.entries(topicScores).slice(0, 5).map(([topic, score]) => {
+      const pct = Number(score) || 0;
+      const col = pct >= 75 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
+      return `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+            <span>${topic}</span><span style="color:${col};font-weight:700;">${pct}%</span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:50px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:50px;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Question papers
+  const paperWrap = document.getElementById('parentQuestionPapers');
+  if (paperWrap) {
+    if (!questionPapers.length) {
+      paperWrap.innerHTML = '<div style="color:#8888AA;font-size:0.88rem;">No question papers posted yet.</div>';
+    } else {
+      paperWrap.innerHTML = questionPapers.slice(0, 5).map(paper => `
+        <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#E8E8F5;text-decoration:none;">
+          <span style="font-size:0.88rem;">${paper.title}</span>
+          <span style="color:#4D9EFF;font-size:0.82rem;">Open</span>
+        </a>
+      `).join('');
+    }
+  }
+
+  // Weak/strong topics
+  const weakWrap = document.getElementById('parentWeakTopics');
+  if (weakWrap) {
+    weakWrap.innerHTML = weakTopics.length
+      ? weakTopics.map(t => `<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;background:rgba(255,45,120,0.12);color:#FF2D78;font-size:0.78rem;font-weight:700;">${t}</span>`).join('')
+      : '<span style="color:#8888AA;font-size:0.88rem;">No weak topics identified yet.</span>';
+  }
+
+  const strongWrap = document.getElementById('parentStrongTopics');
+  if (strongWrap) {
+    strongWrap.innerHTML = strongTopics.length
+      ? strongTopics.map(t => `<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;background:rgba(0,229,160,0.12);color:#00E5A0;font-size:0.78rem;font-weight:700;">${t}</span>`).join('')
+      : '<span style="color:#8888AA;font-size:0.88rem;">No strong topics identified yet.</span>';
   }
 }
 
