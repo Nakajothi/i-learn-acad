@@ -1398,12 +1398,31 @@ Return ONLY JSON (no markdown, no extra text):
 }`;
  
   try {
-    let raw = (await callOpenAI(prompt, {
-      model: 'gpt-4o-mini',
-      maxOutputTokens: 900
-    })).replace(/```json|```/g, '').trim();
-    const aiReport = JSON.parse(raw);
- 
+    let aiReport;
+    if (OPENAI_API_KEY) {
+      const raw = (await callOpenAI(prompt, {
+        model: 'gpt-4o-mini',
+        maxOutputTokens: 900
+      })).replace(/```json|```/g, '').trim();
+      aiReport = JSON.parse(raw);
+    } else {
+      aiReport = {
+        overallSummary: `${student?.name || 'The student'} is currently at ${score}% this week with attendance of ${present.n}/${totalDays.n || 24} days. This is a demo parent summary because AI is not configured on the server yet.`,
+        highlights: [
+          strong.length ? `Strong topics: ${strong.join(', ')}` : 'No strong-topic data available yet.',
+          prev ? `Previous score was ${prevScore}% and the latest score is ${score}%.` : 'This is the first recorded assessment so far.'
+        ],
+        concerns: [
+          weak.length ? `Needs extra attention in: ${weak.join(', ')}.` : 'No major weak topics identified from the latest assessment.'
+        ],
+        parentTips: [
+          'Ask your child to revise one weak topic for 20-30 minutes daily.',
+          'Review attendance and weekly test performance together at the end of each week.'
+        ],
+        nextWeekFocus: weak.length ? `Focus first on ${weak[0]} and keep practicing the recent test topics.` : 'Maintain consistency with revision, attendance, and daily practice.'
+      };
+    }
+
     res.json({
       success: true, student,
       data: { score, prevScore, attendance: { present: present.n, total: totalDays.n || 24 }, topics, weak, strong },
@@ -1411,7 +1430,26 @@ Return ONLY JSON (no markdown, no extra text):
     });
   } catch (err) {
     console.error('AI report error:', err.message);
-    res.status(500).json({ error: 'Could not generate AI report. Please try again.' });
+    res.json({
+      success: true,
+      student,
+      data: { score, prevScore, attendance: { present: present.n, total: totalDays.n || 24 }, topics, weak, strong },
+      aiReport: {
+        overallSummary: `${student?.name || 'The student'} has a latest score of ${score}% with attendance ${present.n}/${totalDays.n || 24}. A simplified report is shown because AI report generation is unavailable right now.`,
+        highlights: [
+          strong.length ? `Strong topics: ${strong.join(', ')}` : 'Assessment data saved successfully.',
+          prev ? `Progress check: previous ${prevScore}%, latest ${score}%.` : 'This is the first available comparison point.'
+        ],
+        concerns: [
+          weak.length ? `Needs support in: ${weak.join(', ')}.` : 'No specific weak-topic concern detected from the latest record.'
+        ],
+        parentTips: [
+          'Set a short fixed revision slot every day.',
+          'Track attendance, weekly tests, and MCQs together.'
+        ],
+        nextWeekFocus: weak.length ? `Revise ${weak[0]} first next week.` : 'Continue steady practice and monitor progress.'
+      }
+    });
   }
 });
  
@@ -1747,6 +1785,24 @@ app.get('/api/parent/daily-mcqs', authParent, (req, res) => {
   });
 });
 
+app.get('/api/student/question-papers', authStudent, (req, res) => {
+  const student = db.prepare('SELECT id, class FROM students WHERE id=?').get(req.student.id);
+  if (!student) return res.status(404).json({ error: 'Student not found' });
+  res.json({
+    papers: getStudentQuestionPapers(student.class || '')
+  });
+});
+
+app.get('/api/parent/question-papers', authParent, (req, res) => {
+  const studentId = req.parent?.studentId;
+  if (!studentId) return res.status(404).json({ error: 'No student linked to this parent account' });
+  const student = db.prepare('SELECT id, class FROM students WHERE id=?').get(studentId);
+  if (!student) return res.status(404).json({ error: 'Student not found' });
+  res.json({
+    papers: getStudentQuestionPapers(student.class || '')
+  });
+});
+
 app.post('/api/student/daily-mcqs/:id/submit', authStudent, (req, res) => {
   const mcqId = Number(req.params.id);
   const selectedIndex = Number(req.body.selectedIndex);
@@ -1783,42 +1839,57 @@ app.get('/api/teacher/mcqs', authTeacher, (req, res) => {
     LIMIT 20
   `).all();
 
-  const batchQuestionsStmt = db.prepare(`
-    SELECT id
+  const allBatchQuestions = db.prepare(`
+    SELECT id, COALESCE(batch_title, title) AS batch_title, class_scope
     FROM daily_mcqs
-    WHERE COALESCE(batch_title, title) = ?
-      AND class_scope = ?
-  `);
-  const eligibleStudentsStmt = db.prepare(`
+  `).all();
+  const questionMap = new Map();
+  allBatchQuestions.forEach((row) => {
+    const key = `${row.batch_title}__${row.class_scope || 'all'}`;
+    const list = questionMap.get(key) || [];
+    list.push(row.id);
+    questionMap.set(key, list);
+  });
+
+  const allStudents = db.prepare(`
     SELECT id, name, email, class
     FROM students
-    WHERE (? = 'all' OR class = ?)
     ORDER BY class, name
-  `);
-  const submissionStatsStmt = db.prepare(`
-    SELECT s.id, s.name, s.email, s.class,
-           COUNT(sub.id) AS attempted_count,
-           SUM(CASE WHEN sub.is_correct = 1 THEN 1 ELSE 0 END) AS correct_count
-    FROM students s
-    LEFT JOIN daily_mcq_submissions sub
-      ON sub.student_id = s.id
-     AND sub.mcq_id IN (SELECT id FROM daily_mcqs WHERE COALESCE(batch_title, title) = ? AND class_scope = ?)
-    WHERE (? = 'all' OR s.class = ?)
-    GROUP BY s.id, s.name, s.email, s.class
-    ORDER BY s.class, s.name
-  `);
+  `).all();
+
+  const allSubmissionStats = db.prepare(`
+    SELECT
+      s.student_id,
+      m.id AS mcq_id,
+      COALESCE(m.batch_title, m.title) AS batch_title,
+      m.class_scope,
+      s.is_correct
+    FROM daily_mcq_submissions s
+    JOIN daily_mcqs m ON m.id = s.mcq_id
+  `).all();
+
+  const submissionMap = new Map();
+  allSubmissionStats.forEach((row) => {
+    const key = `${row.batch_title}__${row.class_scope || 'all'}__${row.student_id}`;
+    const current = submissionMap.get(key) || { attempted: 0, correct: 0 };
+    current.attempted += 1;
+    current.correct += Number(row.is_correct) === 1 ? 1 : 0;
+    submissionMap.set(key, current);
+  });
 
   const mcqs = mcqRows.map((mcq) => {
-    const questionIds = batchQuestionsStmt.all(mcq.batch_title, mcq.class_scope || 'all');
-    const questionCount = Number(mcq.question_count || questionIds.length || 0);
-    const studentStats = submissionStatsStmt.all(
-      mcq.batch_title,
-      mcq.class_scope || 'all',
-      mcq.class_scope || 'all',
-      mcq.class_scope || 'all'
-    ).map((student) => {
-      const attempted = Number(student.attempted_count || 0);
-      const correct = Number(student.correct_count || 0);
+    const classScope = mcq.class_scope || 'all';
+    const key = `${mcq.batch_title}__${classScope}`;
+    const questionCount = Number(mcq.question_count || (questionMap.get(key) || []).length || 0);
+    const eligibleStudents = classScope === 'all'
+      ? allStudents
+      : allStudents.filter((student) => String(student.class || '') === String(classScope));
+
+    const studentStats = eligibleStudents.map((student) => {
+      const statKey = `${mcq.batch_title}__${classScope}__${student.id}`;
+      const stat = submissionMap.get(statKey) || { attempted: 0, correct: 0 };
+      const attempted = Number(stat.attempted || 0);
+      const correct = Number(stat.correct || 0);
       return {
         id: student.id,
         name: student.name,
