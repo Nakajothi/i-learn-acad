@@ -102,6 +102,8 @@ const API = {
 
   getParentReport() { return this.get('/parent/report', this.parentToken()); },
   getParentAIReport() { return this.post('/parent/ai-report', {}, this.parentToken()); },
+  getParentDailyMcqs() { return this.get('/parent/daily-mcqs', this.parentToken()); },
+  getParentQuestionPapers() { return this.get('/parent/question-papers', this.parentToken()); },
 
   logoutParent() {
     localStorage.removeItem('ilearn_parent_token');
@@ -245,7 +247,6 @@ const API = {
     console.warn('[I LEARN API] Backend not reachable. Running in demo mode.');
   }
 })();
-
 
 
 
