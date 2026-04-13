@@ -1457,6 +1457,49 @@ async function loadStudentDoubts() {
   }
 }
 
+async function loadTeacherDoubts() {
+  if (!hasActiveTeacherSession()) return;
+  const wrap = document.getElementById('teacherDoubtList');
+  if (!wrap) return;
+  try {
+    const data = await API.getTeacherDoubts();
+    const doubts = data.doubts || [];
+    if (!doubts.length) {
+      wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No student doubts submitted yet.</div>';
+      return;
+    }
+    wrap.innerHTML = doubts.map((doubt) => {
+      const isAnswered = doubt.status === 'answered';
+      return `
+        <div class="doubt-item teacher-doubt-card">
+          <div class="teacher-doubt-head">
+            <div class="teacher-doubt-student">${doubt.student_name || 'Student'} - Class ${doubt.student_class || '?'}</div>
+            <span class="doubt-status ${isAnswered ? 'answered' : 'open'}">${isAnswered ? 'Answered' : 'Open'}</span>
+          </div>
+          <div class="doubt-question-title">${doubt.question_text}</div>
+          ${doubt.question_image ? `<div class="doubt-answer"><img src="${doubt.question_image}" alt="Question image" /></div>` : ''}
+          ${isAnswered ? `
+            <div class="doubt-reply-block">
+              <div class="doubt-reply-tag">Your Reply</div>
+              ${doubt.answer_text ? `<div class="doubt-reply-text">${doubt.answer_text}</div>` : ''}
+              ${doubt.answer_image ? `<div class="doubt-answer"><img src="${doubt.answer_image}" alt="Answer image" /></div>` : ''}
+            </div>
+          ` : `
+            <div class="doubt-input" style="margin-top:12px;">
+              <textarea id="doubt-answer-${doubt.id}" rows="3" placeholder="Type your reply here..."></textarea>
+              <input type="text" id="doubt-answer-img-${doubt.id}" placeholder="Image URL (optional)" />
+              <button class="btn-secondary" onclick="answerTeacherDoubt(${doubt.id})">Send Reply</button>
+            </div>
+          `}
+          <div class="doubt-meta"><span>${doubt.created_at || ''}</span></div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.9rem;">${err.message || 'Could not load doubts.'}</div>`;
+  }
+}
+
 async function answerTeacherDoubt(id) {
   const text = (document.getElementById('doubt-answer-' + id)?.value || '').trim();
   const image = (document.getElementById('doubt-answer-img-' + id)?.value || '').trim();
@@ -1660,7 +1703,6 @@ async function renderDailyMcqs(role) {
     list.innerHTML = '';
   }
 }
-
 
 
 
