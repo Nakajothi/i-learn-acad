@@ -89,7 +89,7 @@ function studentHubMarkup(data) {
                     return `
                     <label style="display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);padding:10px 12px;border-radius:12px;cursor:${answered ? 'default' : 'pointer'};">
                       <input type="radio" name="profile-mcq-${mcq.id}" value="${optionIndex}" ${Number(mcq.selected_index) === optionIndex ? 'checked' : ''} ${answered ? 'disabled' : ''} />
-                      <span style="display:grid;gap:8px;font-size:0.88rem;color:#E8E8F5;line-height:1.5;">${optionText ? `<span>${optionText}</span>` : ''}${optionImage ? `<img src="${optionImage}" alt="Option ${optionIndex + 1}" style="max-width:180px;width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.08);display:block;" />` : ''}</span>
+                      <span style="display:grid;gap:8px;font-size:0.88rem;color:#E8E8F5;line-height:1.5;">${optionText ? `<span>${optionText}</span>` : `<span>${String.fromCharCode(65+optionIndex)}.</span>`}${optionImage ? `<img src="${optionImage}" alt="Option ${optionIndex + 1}" style="max-width:180px;width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.08);display:block;" />` : ''}</span>
                     </label>
                   `; }).join('')}
                 </div>
@@ -322,26 +322,24 @@ function ensureParentExtraWidgets() {
   const parentTab = document.getElementById('tab-parent');
   if (!parentTab) return;
 
-  // Weekly tests widget
   if (!document.getElementById('parentWeeklyTestsWidget')) {
     const weekly = document.createElement('div');
     weekly.className = 'dash-widget';
     weekly.id = 'parentWeeklyTestsWidget';
     weekly.innerHTML = `
-      <h4>📋 Weekly Test Marks</h4>
+      <h4>&#128203; Weekly Test Marks</h4>
       <div id="parentWeeklyTests" style="color:var(--muted);font-size:0.9rem;">Weekly test marks will appear here once teachers enter them.</div>
       <div class="dash-updated" id="parentWeeklyTestsUpdated">Last updated: --</div>
     `;
     parentTab.appendChild(weekly);
   }
 
-  // MCQ performance widget
   if (!document.getElementById('parentMcqWidget')) {
     const mcq = document.createElement('div');
     mcq.className = 'dash-widget';
     mcq.id = 'parentMcqWidget';
     mcq.innerHTML = `
-      <h4>📝 Daily MCQ Performance</h4>
+      <h4>&#128221; Daily MCQ Performance</h4>
       <div id="parentMcqSummary" style="color:var(--muted);font-size:0.9rem;margin-bottom:12px;">Daily MCQ summary will appear here.</div>
       <div id="parentMcqList"></div>
       <div class="dash-updated" id="parentMcqUpdated">Last updated: --</div>
@@ -349,37 +347,34 @@ function ensureParentExtraWidgets() {
     parentTab.appendChild(mcq);
   }
 
-  // Topic progress widget
   if (!document.getElementById('parentTopicWidget')) {
     const topics = document.createElement('div');
     topics.className = 'dash-widget';
     topics.id = 'parentTopicWidget';
     topics.innerHTML = `
-      <h4>📈 Topic Performance</h4>
+      <h4>&#128200; Topic Performance</h4>
       <div id="parentTopicProgress" style="color:var(--muted);font-size:0.9rem;">Topic performance will appear here after an assessment.</div>
     `;
     parentTab.appendChild(topics);
   }
 
-  // Question papers widget
   if (!document.getElementById('parentPapersWidget')) {
     const papers = document.createElement('div');
     papers.className = 'dash-widget';
     papers.id = 'parentPapersWidget';
     papers.innerHTML = `
-      <h4>📄 Question Papers</h4>
+      <h4>&#128196; Question Papers</h4>
       <div id="parentQuestionPapers" style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>
     `;
     parentTab.appendChild(papers);
   }
 
-  // Weak/strong topics widget
   if (!document.getElementById('parentTopicsWidget')) {
     const topicTags = document.createElement('div');
     topicTags.className = 'dash-widget';
     topicTags.id = 'parentTopicsWidget';
     topicTags.innerHTML = `
-      <h4>🎯 Weak & Strong Topics</h4>
+      <h4>&#127919; Weak &amp; Strong Topics</h4>
       <div style="margin-bottom:12px;">
         <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Needs Focus</div>
         <div id="parentWeakTopics" style="color:var(--muted);font-size:0.88rem;">No data yet.</div>
@@ -392,13 +387,12 @@ function ensureParentExtraWidgets() {
     parentTab.appendChild(topicTags);
   }
 
-  // Summary cards widget
   if (!document.getElementById('parentSummaryWidget')) {
     const summary = document.createElement('div');
     summary.className = 'dash-widget';
     summary.id = 'parentSummaryWidget';
     summary.innerHTML = `
-      <h4>📊 Quick Summary</h4>
+      <h4>&#128202; Quick Summary</h4>
       <div class="metric-row">
         <span class="metric-label">Attendance %</span>
         <span class="metric-value up" id="parentSummaryAttendance">--</span>
@@ -418,6 +412,7 @@ function ensureParentExtraWidgets() {
 }
 
 function injectParentTabData(report, student) {
+  // Always ensure widgets exist before injecting data
   ensureParentExtraWidgets();
 
   const monthAtt = report.attendanceSummary?.month || report.attendance || {};
@@ -441,29 +436,27 @@ function injectParentTabData(report, student) {
   setUpdatedLabel('parentAttendanceUpdated', now);
 
   // ── Fee card (existing in HTML) ──
+  const studentClass = student?.class || '';
+  setElementText('parentFeeBatch', studentClass ? `Class ${studentClass}` : 'Linked batch');
   if (feeSummary) {
-    setElementText('parentFeeBatch', student?.class ? `Class ${student.class}` : 'Linked batch');
     const pendingAmt = Number(feeSummary.pending || 0);
     setElementText('parentFeeStatus', pendingAmt > 0 ? `Rs ${pendingAmt} pending` : 'Paid up');
     setElementText('parentFeePaid', `Rs ${feeSummary.totalPaid || 0}`);
     setElementText('parentFeePending', `Rs ${feeSummary.pending || 0}`);
-    setUpdatedLabel('parentFeeUpdated', now);
   } else {
-    setElementText('parentFeeBatch', student?.class ? `Class ${student.class}` : 'Linked batch');
     setElementText('parentFeeStatus', 'No fee entries yet');
     setElementText('parentFeePaid', 'Rs 0');
     setElementText('parentFeePending', 'Rs 0');
-    setUpdatedLabel('parentFeeUpdated', now);
   }
+  setUpdatedLabel('parentFeeUpdated', now);
 
   // ── Summary widget ──
   setElementText('parentSummaryAttendance', `${overallAtt.percentage || 0}%`);
-  setUpdatedLabel('parentSummaryAttendanceUpdated', now);
-
-  const answered = mcqQuestions.filter(q => q.selected_index !== null && q.selected_index !== undefined);
-  const correct = answered.filter(q => q.is_correct === 1 || q.is_correct === true).length;
-  setElementText('parentSummaryMcq', mcqQuestions.length ? `${correct}/${mcqQuestions.length} correct` : 'No MCQ yet');
+  const answeredMcqs = mcqQuestions.filter(q => q.selected_index !== null && q.selected_index !== undefined);
+  const correctMcqs = answeredMcqs.filter(q => q.is_correct === 1 || q.is_correct === true).length;
+  setElementText('parentSummaryMcq', mcqQuestions.length ? `${correctMcqs}/${mcqQuestions.length} correct` : 'No MCQ yet');
   setElementText('parentSummaryFee', `Rs ${feeSummary?.pending || 0}`);
+  setUpdatedLabel('parentSummaryAttendanceUpdated', now);
 
   // ── Weekly tests widget ──
   const weeklyWrap = document.getElementById('parentWeeklyTests');
@@ -474,7 +467,7 @@ function injectParentTabData(report, student) {
       weeklyWrap.innerHTML = weeklyTests.slice(0, 5).map(test => `
         <div class="metric-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
           <span class="metric-label">${test.title || 'Test'} (${test.test_date || ''})</span>
-          <span class="metric-value">${Number(test.marks_obtained || 0)}/${Number(test.total_marks || 100)}</span>
+          <span class="metric-value" style="color:var(--green);">${Number(test.marks_obtained || 0)}/${Number(test.total_marks || 100)}</span>
         </div>
       `).join('');
     }
@@ -482,26 +475,35 @@ function injectParentTabData(report, student) {
   }
 
   // ── MCQ widget ──
-  const mcqSummary = document.getElementById('parentMcqSummary');
-  if (mcqSummary) {
-    mcqSummary.textContent = dailyMcqSet.batchTitle
-      ? `${dailyMcqSet.batchTitle} — ${correct}/${mcqQuestions.length} correct`
-      : 'No active MCQ batch right now.';
+  const mcqSummaryEl = document.getElementById('parentMcqSummary');
+  if (mcqSummaryEl) {
+    if (dailyMcqSet.batchTitle) {
+      mcqSummaryEl.textContent = `${dailyMcqSet.batchTitle} — ${correctMcqs}/${mcqQuestions.length} correct`;
+    } else if (mcqQuestions.length === 0) {
+      mcqSummaryEl.textContent = 'No active MCQ batch right now.';
+    } else {
+      mcqSummaryEl.textContent = `${mcqQuestions.length} question(s) — ${correctMcqs} correct`;
+    }
   }
-  const mcqList = document.getElementById('parentMcqList');
-  if (mcqList) {
-    mcqList.innerHTML = mcqQuestions.slice(0, 6).map((item, idx) => {
-      const attempted = item.selected_index !== null && item.selected_index !== undefined;
-      const isCorrect = item.is_correct === 1 || item.is_correct === true;
-      return `
-        <div style="padding:12px 0;border-top:1px solid rgba(255,255,255,0.06);">
-          <div style="font-weight:700;font-size:0.88rem;">Q${idx + 1}: ${item.question || 'Question'}</div>
-          <div style="font-size:0.82rem;margin-top:6px;color:${attempted ? (isCorrect ? 'var(--green)' : 'var(--yellow)') : 'var(--muted)'};">
-            ${attempted ? (isCorrect ? '✓ Answered correctly' : '✗ Needs review') : 'Not attempted yet'}
+
+  const mcqListEl = document.getElementById('parentMcqList');
+  if (mcqListEl) {
+    if (!mcqQuestions.length) {
+      mcqListEl.innerHTML = '<div style="color:var(--muted);font-size:0.88rem;">No MCQs available yet.</div>';
+    } else {
+      mcqListEl.innerHTML = mcqQuestions.slice(0, 6).map((item, idx) => {
+        const attempted = item.selected_index !== null && item.selected_index !== undefined;
+        const isCorrect = item.is_correct === 1 || item.is_correct === true;
+        return `
+          <div style="padding:12px 0;border-top:1px solid rgba(255,255,255,0.06);">
+            <div style="font-weight:700;font-size:0.88rem;">Q${idx + 1}: ${item.question || 'Question'}</div>
+            <div style="font-size:0.82rem;margin-top:6px;color:${attempted ? (isCorrect ? 'var(--green)' : 'var(--yellow)') : 'var(--muted)'};">
+              ${attempted ? (isCorrect ? '✓ Answered correctly' : '✗ Needs review') : 'Not attempted yet'}
+            </div>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    }
     setUpdatedLabel('parentMcqUpdated', now);
   }
 
@@ -551,6 +553,7 @@ function injectParentTabData(report, student) {
       ? weakTopics.map(t => `<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;background:rgba(255,45,120,0.12);color:#FF2D78;font-size:0.78rem;font-weight:700;">${t}</span>`).join('')
       : '<span style="color:var(--muted);font-size:0.88rem;">No weak topics identified yet.</span>';
   }
+
   const strongWrap = document.getElementById('parentStrongTopics');
   if (strongWrap) {
     strongWrap.innerHTML = strongTopics.length
@@ -567,6 +570,26 @@ window.addEventListener('load', () => {
     setupParentDashboard();
   }
 });
+
+// Helper functions needed by injectParentTabData (defined here for dashboard-auth.js self-sufficiency,
+// but main.js also defines them — whichever loads last wins, they are identical)
+function setElementText(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.textContent = value;
+}
+function setElementWidth(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.style.width = value;
+}
+function formatUpdatedLabel(dateObj) {
+  const date = dateObj || new Date();
+  return 'Last updated: ' + date.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function setUpdatedLabel(id, dateObj) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.textContent = formatUpdatedLabel(dateObj);
+}
 
 
 
