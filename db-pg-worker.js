@@ -43,26 +43,18 @@ function convertSql(sql) {
   );
   s = s.replace(/INSERT\s+OR\s+IGNORE\s+INTO/gi, 'INSERT INTO');
 
-  // --- Unique index fixes (partial index for nullable columns) ---
-  s = s.replace(
-    /CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+idx_students_google_sub\s+ON\s+students\s*\(\s*google_sub\s*\)/gi,
-    'CREATE UNIQUE INDEX IF NOT EXISTS idx_students_google_sub ON students (google_sub) WHERE google_sub IS NOT NULL'
-  );
-  s = s.replace(
-    /CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+idx_teachers_google_sub\s+ON\s+teachers\s*\(\s*google_sub\s*\)/gi,
-    'CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_google_sub ON teachers (google_sub) WHERE google_sub IS NOT NULL'
-  );
-
   // --- Date/time functions ---
   s = s.replace(/date\s*\(\s*'now'\s*,\s*'-(\d+)\s+days?'\s*\)/gi, "(CURRENT_DATE - INTERVAL '$1 days')");
   s = s.replace(/datetime\s*\(\s*'now'\s*,\s*'-(\d+)\s+days?'\s*\)/gi, "(CURRENT_TIMESTAMP - INTERVAL '$1 days')");
   s = s.replace(/date\s*\(\s*'now'\s*\)/gi, 'CURRENT_DATE');
   s = s.replace(/datetime\s*\(\s*'now'\s*\)/gi, 'CURRENT_TIMESTAMP');
 
-  // Strip datetime() / date() wrappers
-  s = s.replace(/datetime\s*\(\s*MAX\s*\(([^)]+)\)\s*\)/gi, 'MAX($1)');
-  s = s.replace(/datetime\s*\(\s*([^()]+)\s*\)/gi, '$1');
-  s = s.replace(/date\s*\(\s*([^()]+)\s*\)/gi, 'DATE($1)');
+  // Strip datetime() / date() wrappers — but NOT if it's a CREATE INDEX statement
+  if (!/^\s*CREATE\s+(UNIQUE\s+)?INDEX/i.test(s)) {
+    s = s.replace(/datetime\s*\(\s*MAX\s*\(([^)]+)\)\s*\)/gi, 'MAX($1)');
+    s = s.replace(/datetime\s*\(\s*([^()]+)\s*\)/gi, '$1');
+    s = s.replace(/date\s*\(\s*([^()]+)\s*\)/gi, 'DATE($1)');
+  }
 
   return s;
 }
