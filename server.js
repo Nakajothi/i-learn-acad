@@ -873,7 +873,14 @@ app.post('/api/parent/google-login', async (req, res) => {
 // ── PARENT REPORT — fixed response shape so dashboard-auth.js gets all fields ──
 app.get('/api/parent/report', authParent, (req, res) => {
   try { syncAttendanceFromSheet(); } catch (e) { /* ignore */ }
-  const { studentId } = req.parent;
+  let { studentId, mobile } = req.parent;
+  // Fallback: if studentId is null (edge case with OTP login),
+  // look up the student by the mobile number stored in the JWT
+  if (!studentId && mobile) {
+    const digits = String(mobile).replace(/\D/g, '').slice(-10);
+    const parentRow = db.prepare('SELECT student_id FROM parents WHERE mobile=?').get(digits);
+    studentId = parentRow?.student_id || null;
+  }
   if (!studentId) return res.status(404).json({ error: 'No student linked to this parent account' });
   const student = db.prepare('SELECT id, name, class, mobile FROM students WHERE id=?').get(studentId);
   if (!student) return res.status(404).json({ error: 'Student not found' });
