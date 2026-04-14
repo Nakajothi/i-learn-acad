@@ -75,7 +75,6 @@ function switchTab(tab, el) {
 function openLoginModal() {
   document.getElementById('loginModal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  resetParentOTP();
   updateAuthRequiredState();
 }
 
@@ -120,12 +119,6 @@ function closeLoginModal() {
   document.body.style.overflow = '';
 }
 
-function getStudentDashboardPath(student) {
-  const cls = String(student?.class || student?.cls || '').trim();
-  const dashboards = { '9': 'class9.html', '10': 'class10.html', '11': 'class11.html', '12': 'class12.html' };
-  return dashboards[cls] || 'index.html';
-}
-
 function redirectToStudentDashboard(student) {
   const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
   if (isHome) {
@@ -146,6 +139,8 @@ function redirectToParentDashboard() {
   const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
   if (isHome) {
     updateHomeForSession();
+    // Ensure widgets exist, then load live data
+    if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
     refreshParentDashboard();
     const parentTab = document.getElementById('parentDashTab');
     if (parentTab) switchTab('parent', parentTab);
@@ -208,6 +203,8 @@ async function loginStudentWithPassword() {
   }
 }
 
+let currentLoginType = 'student';
+
 function setLoginType(type) {
   currentLoginType = type;
   const groups = {
@@ -223,7 +220,6 @@ function setLoginType(type) {
   ['student', 'parent', 'teacher'].forEach((key) => {
     document.getElementById('ltab-' + key)?.classList.toggle('active', key === type);
   });
-  resetParentOTP();
 }
 
 function flashInput(id, msg) {
@@ -236,79 +232,7 @@ function flashInput(id, msg) {
   alert(msg);
 }
 
-// ── PARENT OTP LOGIN ──────────────────────────────────────────────────────────
-let parentOTP = null;
-let parentMobile = null;
-let currentLoginType = 'student';
-
-function showOTPError(msg) {
-  const errEl = document.getElementById('parentOTPError');
-  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
-}
-
-async function sendParentOTP() {
-  const raw = (document.getElementById('lp-mobile')?.value || '').trim();
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length < 10) { flashInput('lp-mobile', 'Please enter a valid 10-digit mobile number.'); return; }
-  const sendBtn = document.querySelector('#parentStep-mobile .btn-primary');
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending OTP...'; }
-  try {
-    const data = await API.sendParentOTP(raw);
-    parentMobile = raw;
-    parentOTP = null;
-    document.getElementById('parentStep-mobile').style.display = 'none';
-    document.getElementById('parentStep-otp').style.display = 'flex';
-    document.getElementById('parentStep-otp').style.flexDirection = 'column';
-    document.getElementById('parentMobileDisplay').textContent = raw;
-    const info = data.studentFound
-      ? `OTP sent to ${raw} ✅\nStudent found: ${data.studentName || 'Your child'} (Class ${data.studentClass || '?'})\n\nEnter the OTP received on this number.`
-      : `OTP sent to ${raw} ✅\n\nEnter the OTP received on this number.`;
-    setTimeout(() => alert(info), 80);
-  } catch (err) {
-    showOTPError(err.message || 'Failed to send OTP. Please try again.');
-  } finally {
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP 📱'; }
-  }
-}
-
-async function verifyParentOTP() {
-  const entered = (document.getElementById('lp-otp')?.value || '').trim();
-  const errEl = document.getElementById('parentOTPError');
-  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
-  if (!entered) { showOTPError('Please enter the 4-digit OTP.'); return; }
-  if (!parentMobile) { showOTPError('Please request an OTP first.'); return; }
-  const verifyBtn = document.querySelector('#parentStep-otp .btn-primary');
-  if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying...'; }
-  try {
-    const data = await API.verifyParentOTP(parentMobile, entered);
-    closeLoginModal();
-    parentOTP = null;
-    alert(`OTP verified! ✅\n\n${data.message || 'Redirecting to parent dashboard...'}`);
-    redirectToParentDashboard();
-  } catch (err) {
-    showOTPError(err.message || 'Incorrect OTP. Please try again.');
-    const input = document.getElementById('lp-otp');
-    if (input) { input.style.borderColor = '#FF2D78'; setTimeout(() => input.style.borderColor = '', 2500); }
-  } finally {
-    if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & View Report →'; }
-  }
-}
-
-function resetParentOTP() {
-  parentOTP = null;
-  parentMobile = null;
-  const mobileStep = document.getElementById('parentStep-mobile');
-  const otpStep = document.getElementById('parentStep-otp');
-  const errEl = document.getElementById('parentOTPError');
-  const mInput = document.getElementById('lp-mobile');
-  const oInput = document.getElementById('lp-otp');
-  if (mobileStep) { mobileStep.style.display = 'flex'; mobileStep.style.flexDirection = 'column'; }
-  if (otpStep) otpStep.style.display = 'none';
-  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
-  if (mInput) mInput.value = '';
-  if (oInput) oInput.value = '';
-}
-
+// ── GOOGLE LOGIN HANDLER ──────────────────────────────────────────────────────
 async function handleCredentialResponse(response) {
   clearLoginError();
   if (!response?.credential) { showLoginError('Google login failed. Please try again.'); return; }
@@ -323,6 +247,10 @@ async function handleCredentialResponse(response) {
     if (currentLoginType === 'parent') {
       const data = await API.loginParentWithGoogle(response.credential);
       closeLoginModal();
+      // Store parent student info for attendance display
+      if (data.student) {
+        localStorage.setItem('ilearn_parent_student', JSON.stringify(data.student));
+      }
       redirectToParentDashboard();
       return;
     }
@@ -669,31 +597,28 @@ async function loginTeacher() {
 }
 
 // ── PARENT DASHBOARD REFRESH ──────────────────────────────────────────────────
-// FIX: refreshParentDashboard is the SINGLE source of truth for parent tab data.
-// It fetches live data, caches it, then calls injectParentTabData once with the
-// correct flat data object. updateDashboardAttendanceCards() no longer calls
-// injectParentTabData to avoid overwriting live data with stale cache.
+// This is the SINGLE source of truth for parent tab data.
+// It fetches live data from /api/parent/report using the parent token,
+// which is linked to the student via the student's email (Google login).
 async function refreshParentDashboard() {
   if (!hasActiveParentSession()) return;
   try {
     const apiResponse = await API.getParentReport();
 
-    // The server returns { ...fullData, report: fullData }.
-    // We always use the top-level shape (which has attendanceSummary directly).
-    // If the top-level doesn't have attendanceSummary, fall back to .report.
+    // The server returns both flat and nested shapes; use top-level if it has attendanceSummary
     const liveData = apiResponse.attendanceSummary ? apiResponse : (apiResponse.report || apiResponse);
     const student = apiResponse.student || liveData.student || {};
 
-    // Cache for nav profile / offline use
+    // Cache for nav profile
     localStorage.setItem('ilearn_parent_profile', JSON.stringify(apiResponse));
     localStorage.setItem('ilearn_parent_student', JSON.stringify(student));
 
-    // Ensure widgets exist before injecting
+    // Ensure widget shells exist
     if (typeof ensureParentExtraWidgets === 'function') {
       ensureParentExtraWidgets();
     }
 
-    // Inject all parent tab widgets with live data
+    // Inject all parent widgets with live data
     if (typeof injectParentTabData === 'function') {
       injectParentTabData(liveData, student);
     }
@@ -717,7 +642,6 @@ async function refreshRoleData() {
         console.warn('Timetable refresh skipped:', innerErr.message || innerErr);
       }
     } else if (role === 'parent') {
-      // refreshParentDashboard handles full parent data refresh
       await refreshParentDashboard();
       return;
     } else if (role === 'teacher') {
@@ -781,10 +705,9 @@ function renderTodayTimetableReminder() {
   }).join('');
 }
 
-// FIX: updateDashboardAttendanceCards only handles student + teacher welcome
-// banners and nav profile. For parent role, refreshParentDashboard owns ALL
-// data injection — this function deliberately skips calling injectParentTabData
-// to avoid overwriting live data with stale localStorage cache.
+// updateDashboardAttendanceCards: handles student and teacher banners only.
+// Parent data is always loaded fresh via refreshParentDashboard() to avoid
+// stale cached values overwriting live attendance data.
 function updateDashboardAttendanceCards() {
   const now = new Date();
   const role = getCurrentRole();
@@ -822,12 +745,6 @@ function updateDashboardAttendanceCards() {
   setElementText('studentStreakValue', streakValue + ' day' + (streakValue === 1 ? '' : 's'));
   setUpdatedLabel('studentStreakUpdated', now);
 
-  // ── Parent role: DO NOT call injectParentTabData here with stale cache.
-  // refreshParentDashboard() is responsible for all parent widget updates
-  // using fresh live data from the API. Calling injectParentTabData here
-  // with empty localStorage would show 0/0 and "Linked student".
-  // (No parent injection code here — intentional.)
-
   renderTodayTimetableReminder();
 }
 
@@ -855,7 +772,6 @@ function updateHomeForSession() {
   } else if (role === 'parent') {
     parentTab?.classList.add('active'); studentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
     parentContent?.classList.add('active'); studentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
-    // Create widget shells before live data arrives
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
   } else if (role === 'teacher') {
     teacherTab?.classList.add('active'); studentTab?.classList.remove('active'); parentTab?.classList.remove('active');
@@ -957,7 +873,7 @@ function renderTeacherMcqList(mcqs) {
         <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">
           <div>
             <div style="font-size:0.78rem;color:var(--blue);font-weight:700;margin-bottom:6px;">${mcq.batch_title || mcq.title || 'Daily MCQ Batch'} - Class ${mcq.class_scope || 'all'}</div>
-            <div style="font-weight:700;line-height:1.5;">${mcq.question_count || 0} questions - ends ${mcq.available_until || 'in 24 hours'}</div>
+            <div style="font-weight:700;line-height:1.5;">${mcq.question_count || 0} questions</div>
           </div>
           <div style="min-width:220px;text-align:right;">
             <div style="font-weight:700;color:var(--green);">${accuracy}% accuracy</div>
@@ -1400,10 +1316,11 @@ window.addEventListener('load', async () => {
     loadStudentResources();
     loadStudentDoubts();
   } else if (role === 'parent') {
-    // Ensure widget shells exist first
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
     updateHomeForSession();
-    // refreshParentDashboard fetches live data and populates ALL parent widgets
+    // refreshParentDashboard fetches live data via /api/parent/report
+    // The token carries studentId (from Google login), so attendance
+    // is correctly linked to the student by the server
     await refreshParentDashboard();
     loadStudentResources();
   } else if (role === 'teacher') {
