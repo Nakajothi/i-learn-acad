@@ -3,8 +3,53 @@
 //  dashboard-auth.js loads first and exposes:
 //    window.ensureParentExtraWidgets()
 //    window.injectParentTabData(rawApiResponse, student)
-//    window.setElementText / setElementWidth / setUpdatedLabe
+//    window.setElementText / setElementWidth / setUpdatedLabel
 // ============================================================
+
+// ── GOOGLE SIGN-IN INITIALIZATION ────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '78739374453-1trbc4voc2jl5binr7e9obv1fmph4dnj.apps.googleusercontent.com'; // <-- paste your Google OAuth Client ID here
+
+function initGoogleSignIn() {
+  if (!window.google || !GOOGLE_CLIENT_ID) return;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: true
+  });
+  // Render all sign-in buttons on the page
+  document.querySelectorAll('.g_id_signin').forEach(el => {
+    google.accounts.id.renderButton(el, {
+      type: el.dataset.type || 'standard',
+      shape: el.dataset.shape || 'pill',
+      theme: el.dataset.theme || 'filled_blue',
+      text: el.dataset.text || 'continue_with',
+      size: el.dataset.size || 'large',
+      logo_alignment: el.dataset.logoAlignment || 'left',
+      width: el.dataset.width || '320'
+    });
+  });
+}
+
+// Re-render Google buttons whenever login type tab changes
+// (because hidden divs don't render properly until visible)
+function reinitGoogleButtons() {
+  if (!window.google || !GOOGLE_CLIENT_ID) return;
+  try {
+    document.querySelectorAll('.g_id_signin').forEach(el => {
+      el.innerHTML = '';
+      google.accounts.id.renderButton(el, {
+        type: el.dataset.type || 'standard',
+        shape: el.dataset.shape || 'pill',
+        theme: el.dataset.theme || 'filled_blue',
+        text: el.dataset.text || 'continue_with',
+        size: el.dataset.size || 'large',
+        logo_alignment: el.dataset.logoAlignment || 'left',
+        width: el.dataset.width || '320'
+      });
+    });
+  } catch (_) {}
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function showLoginError(msg) {
@@ -126,7 +171,6 @@ function renderNavProfile() {
     ];
     logoutFn = 'API.logoutStudent()';
   } else if (role === 'parent') {
-    // Use the cached raw API response stored by refreshParentDashboard
     const pp = getStored('ilearn_parent_profile');
     const ps = pp.student || getStored('ilearn_parent_student');
     const monthAtt = pp.attendanceSummary?.month || pp.attendance || {};
@@ -155,32 +199,16 @@ function renderNavProfile() {
 }
 
 // ── PARENT DASHBOARD — THE SINGLE SOURCE OF TRUTH ─────────────────────────────
-/**
- * Fetches live parent data from the API and immediately injects it into
- * every parent-tab widget.  Never re-reads localStorage for widget values.
- */
 async function refreshParentDashboard() {
   if (!hasActiveParentSession()) return;
   try {
-    // Single API call — server returns everything at top level
     const raw = await API.getParentReport();
-    // raw = { student, feeSummary, weeklyTests, attendanceSummary,
-    //         dailyMcqSet, questionPapers, weakTopics, strongTopics,
-    //         latestAssessment, assessmentHistory, ..., report: same }
-
-    // Cache for nav profile and offline use ONLY
-    // Store the raw response directly (not nested) so reads are simple
     localStorage.setItem('ilearn_parent_profile', JSON.stringify(raw));
     localStorage.setItem('ilearn_parent_student', JSON.stringify(raw.student || {}));
-
     const student = raw.student || {};
-
-    // injectParentTabData is defined in dashboard-auth.js and handles
-    // ALL widget updates including attendance, fees, tests, MCQ, topics
     if (typeof window.injectParentTabData === 'function') {
       window.injectParentTabData(raw, student);
     }
-
     renderNavProfile();
   } catch (err) {
     console.warn('[refreshParentDashboard] failed:', err.message || err);
@@ -193,7 +221,6 @@ async function refreshStudentData() {
   try {
     const profile = await API.getStudentProfile();
     localStorage.setItem('ilearn_student_profile', JSON.stringify(profile));
-    // Attendance (existing HTML widgets)
     const monthAtt   = profile.attendanceSummary?.month   || {};
     const overallAtt = profile.attendanceSummary?.overall  || monthAtt;
     const pres = Number(monthAtt.present || 0);
@@ -213,7 +240,6 @@ async function refreshStudentData() {
   } catch (err) {
     console.warn('[refreshStudentData] failed:', err.message || err);
   }
-  // Timetable (fire-and-forget)
   try {
     const tt = await API.getLatestTimetable();
     localStorage.setItem('ilearn_student_timetable', JSON.stringify(tt));
@@ -246,7 +272,7 @@ async function refreshRoleData() {
     await refreshStudentData();
   } else if (role === 'parent') {
     await refreshParentDashboard();
-    return; // refreshParentDashboard already calls renderNavProfile
+    return;
   }
   renderNavProfile();
 }
@@ -288,7 +314,6 @@ function updateHomeForSession() {
   } else if (role === 'parent') {
     tabs.parent?.classList.add('active');
     contents.parent?.classList.add('active');
-    // Create widget shells now so they exist before data arrives
     if (typeof window.ensureParentExtraWidgets === 'function') {
       window.ensureParentExtraWidgets();
     }
@@ -297,7 +322,6 @@ function updateHomeForSession() {
     if (contents.teacher) { contents.teacher.classList.add('active'); contents.teacher.style.display = 'block'; }
   }
 
-  // Update welcome text
   let welcomeName = 'Learner';
   if (role === 'student') {
     const sp = getStored('ilearn_student_profile');
@@ -328,7 +352,6 @@ function switchTab(tab, el) {
   } else if (tab === 'student' && hasActiveStudentSession()) {
     refreshStudentData().then(() => { loadStudentResources(); loadStudentDoubts(); });
   } else if (tab === 'parent' && hasActiveParentSession()) {
-    // Always ensure widget shells exist, then fetch fresh data
     if (typeof window.ensureParentExtraWidgets === 'function') window.ensureParentExtraWidgets();
     refreshParentDashboard();
   }
@@ -339,6 +362,8 @@ function openLoginModal() {
   document.getElementById('loginModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   setLoginType('student');
+  // Re-render Google buttons after modal opens (they need to be visible)
+  setTimeout(reinitGoogleButtons, 100);
 }
 function closeLoginModal() {
   document.getElementById('loginModal').classList.remove('open');
@@ -379,6 +404,8 @@ function setLoginType(type) {
     if (fields) { fields.style.display = k === type ? 'flex' : 'none'; if (k === type) fields.style.flexDirection = 'column'; }
     if (tab)    tab.classList.toggle('active', k === type);
   });
+  // Re-render the Google button for the now-visible section
+  setTimeout(reinitGoogleButtons, 100);
 }
 
 // ── STUDENT LOGIN ─────────────────────────────────────────────────────────────
@@ -431,10 +458,10 @@ function _redirectTeacher() {
   window.location.href = 'index.html#dashboards';
 }
 
-// ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────────
+// ── GOOGLE SIGN-IN CALLBACK ───────────────────────────────────────────────────
 async function handleCredentialResponse(response) {
   clearLoginError();
-  if (!response?.credential) { showLoginError('Google login failed.'); return; }
+  if (!response?.credential) { showLoginError('Google login failed. Please try again.'); return; }
   try {
     if (currentLoginType === 'teacher') {
       const d = await API.loginTeacherWithGoogle(response.credential);
@@ -444,10 +471,11 @@ async function handleCredentialResponse(response) {
       await API.loginParentWithGoogle(response.credential);
       closeLoginModal(); _redirectParent();
     } else {
+      // Default: student login
       const d = await API.loginStudentWithGoogle(response.credential);
       closeLoginModal(); _redirectStudent(d.student);
     }
-  } catch (err) { showLoginError(err.message || 'Google login failed'); }
+  } catch (err) { showLoginError(err.message || 'Google login failed. Please try again.'); }
 }
 
 // ── TEACHER LOGIN ─────────────────────────────────────────────────────────────
@@ -626,7 +654,20 @@ function showResult() {
     return '<div class="t-bar-wrap"><div class="t-bar-top"><span>'+topic+'</span><span style="color:'+c+'">'+p+'%</span></div><div class="t-bar"><div class="t-bar-fill" style="width:'+p+'%;background:'+c+'"></div></div></div>';
   }).join('');
   document.getElementById('aiTip').innerHTML = '🤖 <strong>AI Tip:</strong> Focus on <strong>'+(weak.length?weak.slice(0,2).join(' and '):'all topics equally')+'</strong>.';
+  showResult_submit(correct, total, topicScores, weak, strong);
   showRegStep(3);
+}
+
+function showResult_submit(correct, total, topicScores, weak, strong) {
+  const topicPcts = {};
+  Object.entries(topicScores).forEach(([t,s]) => { topicPcts[t] = Math.round(s.c/s.t*100); });
+  try {
+    API.submitAssessment(
+      Object.values(assessAnswers),
+      activeQuestions,
+      studentData.cls || studentData.class
+    ).catch(() => {});
+  } catch (_) {}
 }
 
 // ── CHATBOT ───────────────────────────────────────────────────────────────────
@@ -1040,6 +1081,17 @@ async function loadStudentResources() {
 
 // ── PAGE LOAD ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
+  // Initialize Google Sign-In as soon as the page loads
+  // The google GSI script is loaded async in <head>, so we poll until ready
+  const waitForGoogle = (cb, attempts = 0) => {
+    if (window.google && window.google.accounts) {
+      cb();
+    } else if (attempts < 20) {
+      setTimeout(() => waitForGoogle(cb, attempts + 1), 200);
+    }
+  };
+  waitForGoogle(initGoogleSignIn);
+
   renderTeacherMcqCards(10);
   const role = getCurrentRole();
 
@@ -1049,15 +1101,11 @@ window.addEventListener('load', async () => {
     loadStudentResources();
     loadStudentDoubts();
   } else if (role === 'parent') {
-    // 1. Create widget shells immediately so DOM targets exist
     if (typeof window.ensureParentExtraWidgets === 'function') {
       window.ensureParentExtraWidgets();
     }
-    // 2. Show correct tab before data arrives
     updateHomeForSession();
-    // 3. Fetch live data and inject into every widget
     await refreshParentDashboard();
-    // 4. Optionally load the resources section too
     loadStudentResources();
   } else if (role === 'teacher') {
     updateHomeForSession();
