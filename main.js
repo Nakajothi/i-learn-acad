@@ -3,7 +3,7 @@
 //  dashboard-auth.js loads first and exposes:
 //    window.ensureParentExtraWidgets()
 //    window.injectParentTabData(rawApiResponse, student)
-//    window.setElementText / setElementWidth / setUpdatedLabel
+//    window.setElementText / setElementWidth / setUpdatedLabe
 // ============================================================
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
