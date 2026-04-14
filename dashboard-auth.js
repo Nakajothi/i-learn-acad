@@ -1,9 +1,16 @@
 // ============================================================
 //  DASHBOARD-AUTH.JS — I LEARN ACADEMY
-//  Self-contained: defines own helpers, exports to window for main.js
+//  Handles: student class pages, ai-parentreport.html
+//  Exports global functions used by main.js for index.html parent tab
 // ============================================================
 
-// ── HELPERS (self-contained, also exported for main.js) ───────
+// ── DOM HELPERS ──────────────────────────────────────────────────────────────
+function formatAttendanceLabel(present, total) {
+  const p = Number(present) || 0;
+  const t = Number(total) || 0;
+  const pct = t ? Math.round((p / t) * 100) : 0;
+  return `${p}/${t} (${pct}%)`;
+}
 function _setText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = (val === null || val === undefined) ? '' : String(val);
@@ -16,187 +23,219 @@ function _setHTML(id, html) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
 }
-function _setUpdated(id) {
+function _stampUpdated(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = 'Last updated: ' + new Date().toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   });
 }
-function _pct(a, b) {
-  const n = Number(a) || 0, d = Number(b) || 0;
-  return d ? Math.round((n / d) * 10) / 10 : 0;
-}
-function formatAttendanceLabel(present, total) {
-  const p = Number(present) || 0, t = Number(total) || 0;
-  const pct = t ? Math.round((p / t) * 100) : 0;
-  return p + '/' + t + ' (' + pct + '%)';
-}
 
-// Export for main.js (which loads after this file)
+// Expose as window globals so main.js can call them
 window.setElementText  = _setText;
 window.setElementWidth = _setWidth;
-window.setUpdatedLabel = function(id) { _setUpdated(id); };
-window.formatUpdatedLabel = function() {
+window.setUpdatedLabel = _stampUpdated;
+window.formatUpdatedLabel = function () {
   return 'Last updated: ' + new Date().toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   });
 };
 
-// ── PROFILE BANNER ─────────────────────────────────────────────
+// ── PROFILE BANNER ────────────────────────────────────────────────────────────
 function dashboardProfileMarkup(title, subtitle, details, logoutLabel, logoutFn) {
-  var items = details.map(function(item) {
-    return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);'
-         + 'border-radius:14px;padding:14px 16px;min-width:160px;">'
-         + '<div style="font-size:0.72rem;color:#8888AA;text-transform:uppercase;'
-         + 'letter-spacing:0.08em;margin-bottom:6px;">' + item.label + '</div>'
-         + '<div style="font-size:0.95rem;font-weight:600;color:#E8E8F5;">' + item.value + '</div>'
-         + '</div>';
-  }).join('');
-  return '<section id="roleDashboardProfile" style="max-width:1100px;margin:22px auto 0;padding:0 24px;">'
-       + '<div style="background:linear-gradient(135deg,rgba(77,158,255,0.12),rgba(255,45,120,0.12));'
-       + 'border:1px solid rgba(255,255,255,0.1);border-radius:22px;padding:22px;'
-       + 'display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">'
-       + '<div><div style="font-size:0.76rem;color:#4D9EFF;font-weight:800;letter-spacing:0.1em;'
-       + 'text-transform:uppercase;margin-bottom:8px;">' + title + '</div>'
-       + '<h2 style="font-family:\'Syne\',sans-serif;font-size:1.45rem;font-weight:800;margin-bottom:6px;">'
-       + subtitle + '</h2>'
-       + '<p style="color:#B6B6D6;font-size:0.92rem;line-height:1.6;">Your dashboard is ready.</p></div>'
-       + '<button onclick="' + logoutFn + '()" style="background:#FF2D78;color:#fff;border:none;'
-       + 'border-radius:999px;padding:11px 18px;font-weight:700;cursor:pointer;">' + logoutLabel + '</button>'
-       + '</div>'
-       + '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;">' + items + '</div>'
-       + '</section>';
+  const items = details.map(d =>
+    `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+       border-radius:14px;padding:14px 16px;min-width:160px;">
+       <div style="font-size:0.72rem;color:#8888AA;text-transform:uppercase;
+         letter-spacing:0.08em;margin-bottom:6px;">${d.label}</div>
+       <div style="font-size:0.95rem;font-weight:600;color:#E8E8F5;">${d.value}</div>
+     </div>`
+  ).join('');
+  return `
+    <section id="roleDashboardProfile"
+      style="max-width:1100px;margin:22px auto 0;padding:0 24px;">
+      <div style="background:linear-gradient(135deg,rgba(77,158,255,.12),rgba(255,45,120,.12));
+        border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:22px;
+        display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:.76rem;color:#4D9EFF;font-weight:800;letter-spacing:.1em;
+            text-transform:uppercase;margin-bottom:8px;">${title}</div>
+          <h2 style="font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:800;
+            margin-bottom:6px;">${subtitle}</h2>
+          <p style="color:#B6B6D6;font-size:.92rem;line-height:1.6;">Your dashboard is ready.</p>
+        </div>
+        <button onclick="${logoutFn}()"
+          style="background:#FF2D78;color:#fff;border:none;border-radius:999px;
+            padding:11px 18px;font-weight:700;cursor:pointer;">${logoutLabel}</button>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;">${items}</div>
+    </section>`;
 }
 
-// ── STUDENT LEARNING HUB (class pages) ────────────────────────
+// ── STUDENT LEARNING HUB (class pages) ───────────────────────────────────────
 async function refreshStudentLearningHub() {
-  var hub = document.getElementById('studentLearningHub');
+  const hub = document.getElementById('studentLearningHub');
   if (!hub) return;
-  var data = await API.getStudentProfile();
-  hub.outerHTML = studentHubMarkup(data);
+  const data = await API.getStudentProfile();
+  hub.outerHTML = _buildStudentHubMarkup(data);
 }
-async function submitStudentProfileMcq(mcqId) {
-  var sel = document.querySelector('input[name="profile-mcq-' + mcqId + '"]:checked');
+
+window.submitStudentProfileMcq = async function (mcqId) {
+  const sel = document.querySelector(`input[name="profile-mcq-${mcqId}"]:checked`);
   if (!sel) { alert('Please select an option before submitting.'); return; }
   try {
     await API.submitStudentDailyMcq(mcqId, Number(sel.value));
     await refreshStudentLearningHub();
-  } catch(e) { alert(e.message || 'Could not submit MCQ.'); }
-}
+  } catch (e) { alert(e.message || 'Could not submit MCQ.'); }
+};
 
-function _mcqOptionHtml(opt, i, mcqId, done) {
-  var txt = typeof opt === 'string' ? opt : (opt && opt.text ? opt.text : '');
-  var img = typeof opt === 'string' ? '' : (opt && opt.imageUrl ? opt.imageUrl : '');
-  return '<label style="display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,0.03);'
-       + 'border:1px solid rgba(255,255,255,0.06);padding:10px 12px;border-radius:12px;cursor:'
-       + (done ? 'default' : 'pointer') + ';">'
-       + '<input type="radio" name="profile-mcq-' + mcqId + '" value="' + i + '" />'
-       + '<span style="font-size:0.88rem;color:#E8E8F5;">' + txt
-       + (img ? '<img src="' + img + '" style="max-width:180px;width:100%;border-radius:12px;display:block;margin-top:6px;" />' : '')
-       + '</span></label>';
-}
+function _buildStudentHubMarkup(data) {
+  const mcqSet   = data.dailyMcqSet    || { questions: [] };
+  const papers   = data.questionPapers || [];
+  const tests    = data.weeklyTests    || [];
+  const fee      = data.feeSummary     || null;
+  const qs       = Array.isArray(mcqSet.questions) ? mcqSet.questions : [];
 
-function studentHubMarkup(data) {
-  var mcqSet = (data && data.dailyMcqSet)    || { questions: [] };
-  var papers = (data && data.questionPapers) || [];
-  var tests  = (data && data.weeklyTests)    || [];
-  var fee    = (data && data.feeSummary)     || null;
-  var qs     = Array.isArray(mcqSet.questions) ? mcqSet.questions : [];
-
-  var mcqHtml;
+  // MCQ section
+  let mcqHtml;
   if (qs.length) {
-    var qCards = qs.map(function(mcq) {
-      var done  = mcq.selected_index !== null && mcq.selected_index !== undefined;
-      var col   = done ? (mcq.is_correct ? '#00E5A0' : '#FF2D78') : '#FFD166';
-      var lbl   = done ? (mcq.is_correct ? 'Correct ✓' : 'Needs review ✗') : 'Pending';
-      var opts  = Array.isArray(mcq.options) ? mcq.options : [];
-      var opHtml = opts.map(function(opt, i) { return _mcqOptionHtml(opt, i, mcq.id, done); }).join('');
-      return '<div style="padding:16px;border-radius:16px;background:rgba(13,13,26,0.55);'
-           + 'border:1px solid rgba(255,255,255,0.06);display:grid;gap:14px;">'
-           + '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
-           + '<div><div style="font-size:0.78rem;color:#4D9EFF;font-weight:700;">Q' + mcq.question_no + '</div>'
-           + (mcq.question ? '<div style="margin-top:6px;font-size:0.92rem;">' + mcq.question + '</div>' : '')
-           + (mcq.question_image ? '<img src="' + mcq.question_image + '" style="margin-top:10px;max-width:280px;width:100%;border-radius:14px;display:block;" />' : '')
-           + '</div><div style="color:' + col + ';font-weight:700;font-size:0.84rem;">' + lbl + '</div></div>'
-           + '<div style="display:grid;gap:10px;">' + opHtml + '</div>'
-           + (done
-              ? '<div style="color:#B6B6D6;font-size:0.82rem;">Submitted ' + (mcq.submitted_at || 'today') + '</div>'
-              : '<button onclick="submitStudentProfileMcq(' + mcq.id + ')" style="background:#00E5A0;color:#081019;border:none;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer;">Submit Answer</button>')
-           + '</div>';
+    const qCards = qs.map(mcq => {
+      const done = mcq.selected_index !== null && mcq.selected_index !== undefined;
+      const col  = done ? (mcq.is_correct ? '#00E5A0' : '#FF2D78') : '#FFD166';
+      const lbl  = done ? (mcq.is_correct ? 'Correct ✓' : 'Needs review ✗') : 'Pending';
+      const opts = Array.isArray(mcq.options) ? mcq.options : [];
+      const opHtml = opts.map((opt, i) => {
+        const txt = typeof opt === 'string' ? opt : (opt?.text || '');
+        const img = typeof opt === 'string' ? '' : (opt?.imageUrl || '');
+        return `<label style="display:flex;gap:10px;align-items:flex-start;
+          background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+          padding:10px 12px;border-radius:12px;cursor:${done ? 'default' : 'pointer'};">
+          <input type="radio" name="profile-mcq-${mcq.id}" value="${i}"
+            ${Number(mcq.selected_index) === i ? 'checked' : ''}
+            ${done ? 'disabled' : ''} />
+          <span style="font-size:.88rem;color:#E8E8F5;">${txt}
+            ${img ? `<img src="${img}" style="max-width:180px;width:100%;
+              border-radius:12px;display:block;margin-top:6px;" />` : ''}
+          </span></label>`;
+      }).join('');
+      return `<div style="padding:16px;border-radius:16px;background:rgba(13,13,26,.55);
+        border:1px solid rgba(255,255,255,.06);display:grid;gap:14px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:.78rem;color:#4D9EFF;font-weight:700;">Q${mcq.question_no}</div>
+            ${mcq.question ? `<div style="margin-top:6px;font-size:.92rem;">${mcq.question}</div>` : ''}
+            ${mcq.question_image ? `<img src="${mcq.question_image}" style="margin-top:10px;
+              max-width:280px;width:100%;border-radius:14px;display:block;" />` : ''}
+          </div>
+          <div style="color:${col};font-weight:700;font-size:.84rem;">${lbl}</div>
+        </div>
+        <div style="display:grid;gap:10px;">${opHtml}</div>
+        ${done
+          ? `<div style="color:#B6B6D6;font-size:.82rem;">Submitted ${mcq.submitted_at || 'today'}</div>`
+          : `<button onclick="submitStudentProfileMcq(${mcq.id})"
+               style="background:#00E5A0;color:#081019;border:none;border-radius:999px;
+                 padding:10px 16px;font-weight:800;cursor:pointer;">Submit Answer</button>`}
+      </div>`;
     }).join('');
-    mcqHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:22px;">'
-            + '<div style="font-size:0.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Daily MCQ</div>'
-            + '<h3 style="font-family:\'Syne\',sans-serif;margin-top:6px;">' + (mcqSet.batchTitle || 'Current MCQ Batch') + '</h3>'
-            + '<div style="margin-top:16px;display:grid;gap:14px;">' + qCards + '</div></div>';
+    mcqHtml = `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:20px;padding:22px;">
+      <div style="font-size:.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Daily MCQ</div>
+      <h3 style="font-family:'Syne',sans-serif;margin-top:6px;">${mcqSet.batchTitle || 'Current MCQ Batch'}</h3>
+      <div style="margin-top:16px;display:grid;gap:14px;">${qCards}</div></div>`;
   } else {
-    mcqHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:22px;">'
-            + '<div style="font-size:0.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Daily MCQ</div>'
-            + '<h3 style="font-family:\'Syne\',sans-serif;margin-top:6px;">No active MCQ batch</h3>'
-            + '<p style="color:#B6B6D6;font-size:0.88rem;margin-top:8px;">Your teacher\'s batch will appear here.</p></div>';
+    mcqHtml = `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:20px;padding:22px;">
+      <div style="font-size:.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Daily MCQ</div>
+      <h3 style="font-family:'Syne',sans-serif;margin-top:6px;">No active MCQ batch</h3>
+      <p style="color:#B6B6D6;font-size:.88rem;margin-top:8px;">Your teacher's batch will appear here.</p></div>`;
   }
 
-  var papersHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:22px;">'
-    + '<div style="font-size:0.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Question Papers</div>'
-    + '<div style="margin-top:14px;display:grid;gap:12px;">'
-    + (papers.length
-        ? papers.map(function(p) {
-            return '<a href="' + p.resource_url + '" target="_blank" rel="noreferrer" style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);color:#E8E8F5;text-decoration:none;">'
-                 + '<span>' + p.title + '</span><span style="color:#B6B6D6;font-size:0.84rem;">' + (p.resource_type || 'doc') + '</span></a>';
-          }).join('')
-        : '<div style="color:#B6B6D6;font-size:0.88rem;">No papers yet.</div>')
-    + '</div></div>';
+  // Papers
+  const papersHtml = `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    border-radius:20px;padding:22px;">
+    <div style="font-size:.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Question Papers</div>
+    <div style="margin-top:14px;display:grid;gap:12px;">${papers.length
+      ? papers.map(p => `<a href="${p.resource_url}" target="_blank" rel="noreferrer"
+          style="display:flex;justify-content:space-between;gap:12px;align-items:center;
+          padding:14px 16px;border-radius:16px;background:rgba(13,13,26,.55);
+          border:1px solid rgba(255,255,255,.06);color:#E8E8F5;text-decoration:none;">
+          <span>${p.title}</span>
+          <span style="color:#B6B6D6;font-size:.84rem;">${p.resource_type || 'doc'}</span></a>`).join('')
+      : '<div style="color:#B6B6D6;font-size:.88rem;">No papers posted yet.</div>'}
+    </div></div>`;
 
-  var testsHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:22px;">'
-    + '<div style="font-size:0.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Weekly Tests</div>'
-    + '<div style="margin-top:14px;display:grid;gap:12px;">'
-    + (tests.length
-        ? tests.slice(0,5).map(function(t) {
-            return '<div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
-                 + '<div><div style="font-weight:700;">' + t.title + '</div><div style="color:#B6B6D6;font-size:0.84rem;">' + (t.test_date || '') + '</div></div>'
-                 + '<div style="font-weight:700;color:#00E5A0;">' + t.marks_obtained + '/' + t.total_marks + '</div></div>';
-          }).join('')
-        : '<div style="color:#B6B6D6;font-size:0.88rem;">No test marks yet.</div>')
-    + '</div></div>';
+  // Weekly Tests
+  const testsHtml = `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    border-radius:20px;padding:22px;">
+    <div style="font-size:.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Weekly Tests</div>
+    <div style="margin-top:14px;display:grid;gap:12px;">${tests.length
+      ? tests.slice(0, 5).map(t => {
+          const pct = t.total_marks ? Math.round((t.marks_obtained / t.total_marks) * 100) : 0;
+          const col = pct >= 75 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
+          return `<div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,.55);
+            border:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;
+            gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;">${t.title}</div>
+              <div style="color:#B6B6D6;font-size:.84rem;margin-top:4px;">${t.test_date || ''}</div>
+            </div>
+            <div style="font-weight:700;color:${col};">${t.marks_obtained}/${t.total_marks}
+              <span style="font-size:.78rem;opacity:.8;">(${pct}%)</span></div></div>`;
+        }).join('')
+      : '<div style="color:#B6B6D6;font-size:.88rem;">No test marks yet.</div>'}
+    </div></div>`;
 
-  var feeHtml = '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:22px;">'
-    + '<div style="font-size:0.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Fees</div>';
+  // Fees
+  let feeBody;
   if (fee) {
-    feeHtml += '<div style="margin-top:14px;display:grid;gap:10px;">'
-      + '<div style="display:flex;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);">'
-      + '<span>Total Fee</span><strong>Rs ' + (fee.totalDue || 0) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);">'
-      + '<span>Paid</span><strong style="color:#00E5A0;">Rs ' + (fee.totalPaid || 0) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(13,13,26,0.55);border:1px solid rgba(255,255,255,0.06);">'
-      + '<span>Pending</span><strong style="color:' + (Number(fee.pending) > 0 ? '#FF2D78' : '#00E5A0') + ';">Rs ' + (fee.pending || 0) + '</strong></div>'
-      + ((fee.payments || []).slice(0,3).map(function(p) {
-          return '<div style="display:flex;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);font-size:0.84rem;">'
-               + '<span style="color:#B6B6D6;">Paid on ' + p.paid_on + '</span>'
-               + '<strong style="color:#00E5A0;">Rs ' + p.amount_paid + '</strong></div>';
-        }).join(''))
-      + '</div>';
+    const pending = Number(fee.pending || 0);
+    feeBody = `<div style="margin-top:14px;display:grid;gap:10px;">
+      <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,.55);
+        border:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;">
+        <span>Total Fee</span><strong>Rs ${fee.totalDue || 0}</strong></div>
+      <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,.55);
+        border:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;">
+        <span>Paid</span><strong style="color:#00E5A0;">Rs ${fee.totalPaid || 0}</strong></div>
+      <div style="padding:14px 16px;border-radius:16px;background:rgba(13,13,26,.55);
+        border:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;">
+        <span>Pending</span><strong style="color:${pending > 0 ? '#FF2D78' : '#00E5A0'};">Rs ${fee.pending || 0}</strong></div>
+      ${(fee.payments || []).slice(0, 3).map(p =>
+        `<div style="padding:10px 14px;border-radius:12px;background:rgba(0,229,160,.06);
+          border:1px solid rgba(0,229,160,.15);display:flex;justify-content:space-between;font-size:.84rem;">
+          <span style="color:#B6B6D6;">Paid on ${p.paid_on}</span>
+          <strong style="color:#00E5A0;">Rs ${p.amount_paid}</strong></div>`).join('')}
+    </div>`;
   } else {
-    feeHtml += '<div style="margin-top:14px;color:#B6B6D6;font-size:0.88rem;">No fee entries yet.</div>';
+    feeBody = '<div style="margin-top:14px;color:#B6B6D6;font-size:.88rem;">No fee entries yet.</div>';
   }
-  feeHtml += '</div>';
+  const feeHtml = `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    border-radius:20px;padding:22px;">
+    <div style="font-size:.78rem;color:#4D9EFF;font-weight:800;text-transform:uppercase;">Fees</div>
+    ${feeBody}</div>`;
 
-  return '<section id="studentLearningHub" style="max-width:1100px;margin:20px auto 0;padding:0 24px;">'
-       + '<div style="display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">'
-       + mcqHtml + papersHtml + testsHtml + feeHtml
-       + '</div></section>';
+  return `<section id="studentLearningHub"
+    style="max-width:1100px;margin:20px auto 0;padding:0 24px;">
+    <div style="display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
+      ${mcqHtml}${papersHtml}${testsHtml}${feeHtml}
+    </div></section>`;
 }
 
 async function setupStudentDashboard() {
   if (!localStorage.getItem('ilearn_token')) return;
   try {
-    var data = await API.getStudentProfile();
-    var student = data.student;
-    var expected = 'class' + String(student.class).trim() + '.html';
-    if (!window.location.pathname.endsWith(expected)) { window.location.href = expected; return; }
-    var topbar = document.querySelector('.topbar');
+    const data    = await API.getStudentProfile();
+    const student = data.student;
+    const expected = 'class' + String(student.class).trim() + '.html';
+    if (!window.location.pathname.endsWith(expected)) {
+      window.location.href = expected;
+      return;
+    }
+    const topbar = document.querySelector('.topbar');
     if (topbar && !document.getElementById('roleDashboardProfile')) {
-      var pres = Number(data.attendance && data.attendance.present) || 0;
-      var tot  = Number(data.totalAttendance && data.totalAttendance.total) || 0;
+      const pres = Number(data.attendance?.present) || 0;
+      const tot  = Number(data.totalAttendance?.total) || 0;
       topbar.insertAdjacentHTML('afterend', dashboardProfileMarkup(
         'Student Profile', student.name,
         [
@@ -205,248 +244,299 @@ async function setupStudentDashboard() {
           { label: 'Email',      value: student.email  || 'N/A' },
           { label: 'Mobile',     value: student.mobile || 'N/A' },
           { label: 'Attendance', value: formatAttendanceLabel(pres, tot) }
-        ], 'Logout', 'API.logoutStudent'));
+        ],
+        'Logout', 'API.logoutStudent'
+      ));
     }
-    if (!document.getElementById('studentLearningHub')) {
-      var prof = document.getElementById('roleDashboardProfile');
-      if (prof) prof.insertAdjacentHTML('afterend', studentHubMarkup(data));
+    if (topbar && !document.getElementById('studentLearningHub')) {
+      const prof = document.getElementById('roleDashboardProfile');
+      if (prof) prof.insertAdjacentHTML('afterend', _buildStudentHubMarkup(data));
     }
-  } catch(err) { API.logoutStudent(); }
+  } catch (err) { API.logoutStudent(); }
 }
 
-// ── PARENT EXTRA WIDGETS ──────────────────────────────────────
-function ensureParentExtraWidgets() {
-  var tab = document.getElementById('tab-parent');
+// ── PARENT DASHBOARD WIDGETS (index.html tab) ─────────────────────────────────
+
+/**
+ * Ensure the extra dynamic widgets exist inside #tab-parent.
+ * Safe to call multiple times — each widget is only created once.
+ */
+window.ensureParentExtraWidgets = function () {
+  const tab = document.getElementById('tab-parent');
   if (!tab) return;
-  function add(id, html) {
-    if (!document.getElementById(id)) {
-      var d = document.createElement('div');
-      d.className = 'dash-widget';
-      d.id = id;
-      d.innerHTML = html;
-      tab.appendChild(d);
-    }
+
+  function addWidget(id, innerHtml) {
+    if (document.getElementById(id)) return;
+    const div = document.createElement('div');
+    div.className = 'dash-widget';
+    div.id = id;
+    div.innerHTML = innerHtml;
+    tab.appendChild(div);
   }
-  add('parentWeeklyTestsWidget',
-    '<h4>&#128203; Weekly Test Marks</h4>'
-    + '<div id="parentWeeklyTestsList" style="color:var(--muted);font-size:0.9rem;">No test marks yet.</div>'
-    + '<div class="dash-updated" id="parentWeeklyTestsUpdated">Last updated: --</div>');
-  add('parentMcqWidget',
-    '<h4>&#128221; Daily MCQ Performance</h4>'
-    + '<div id="parentMcqSummaryWidget" style="color:var(--muted);font-size:0.9rem;margin-bottom:10px;">No active MCQ batch yet.</div>'
-    + '<div id="parentMcqListWidget"></div>'
-    + '<div class="dash-updated" id="parentMcqUpdated">Last updated: --</div>');
-  add('parentTopicWidget',
-    '<h4>&#128200; Topic Performance</h4>'
-    + '<div id="parentTopicProgressWidget" style="color:var(--muted);font-size:0.9rem;">Appears after first assessment.</div>');
-  add('parentPapersWidget',
-    '<h4>&#128196; Question Papers</h4>'
-    + '<div id="parentQuestionPapersWidget" style="color:var(--muted);font-size:0.9rem;">No papers posted yet.</div>');
-  add('parentTopicsWidget',
-    '<h4>&#127919; Weak &amp; Strong Topics</h4>'
-    + '<div style="margin-bottom:10px;">'
-    + '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em;">Needs Focus</div>'
-    + '<div id="parentWeakTopicsWidget" style="color:var(--muted);font-size:0.88rem;">No data yet.</div></div>'
-    + '<div>'
-    + '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em;">Strong Areas</div>'
-    + '<div id="parentStrongTopicsWidget" style="color:var(--muted);font-size:0.88rem;">No data yet.</div></div>');
-  add('parentSummaryWidget',
-    '<h4>&#128202; Quick Summary</h4>'
-    + '<div class="metric-row"><span class="metric-label">Attendance</span><span class="metric-value up" id="parentSummaryAttendanceWidget">--</span></div>'
-    + '<div class="metric-row"><span class="metric-label">MCQ Score</span><span class="metric-value" id="parentSummaryMcqWidget">--</span></div>'
-    + '<div class="metric-row"><span class="metric-label">Fee Pending</span><span class="metric-value" id="parentSummaryFeeWidget">--</span></div>'
-    + '<div class="dash-updated" id="parentSummaryUpdated">Last updated: --</div>');
-}
 
-// ── INJECT ALL PARENT DATA ────────────────────────────────────
-function injectParentTabData(rawData, student) {
-  ensureParentExtraWidgets();
+  addWidget('parentWeeklyTestsWidget', `
+    <h4>&#128203; Weekly Test Marks</h4>
+    <div id="parentWeeklyTestsList" style="color:var(--muted);font-size:.9rem;">
+      Loading weekly test marks…</div>
+    <div class="dash-updated" id="parentWeeklyTestsUpdated">Last updated: --</div>`);
 
-  // rawData may be the full server response or the nested .report object
-  // Server returns: { student, feeSummary, weeklyTests, dailyMcqSet, attendanceSummary, ... report: {same} }
-  var d = rawData || {};
+  addWidget('parentMcqWidget', `
+    <h4>&#128221; Daily MCQ Performance</h4>
+    <div id="parentMcqSummary" style="color:var(--muted);font-size:.9rem;margin-bottom:10px;">
+      Loading MCQ data…</div>
+    <div id="parentMcqList"></div>
+    <div class="dash-updated" id="parentMcqUpdated">Last updated: --</div>`);
 
-  // Attendance
-  var monthAtt   = (d.attendanceSummary && d.attendanceSummary.month)   || d.attendance || {};
-  var overallAtt = (d.attendanceSummary && d.attendanceSummary.overall)  || monthAtt;
-  var pPres  = Number(monthAtt.present  || 0);
-  var pTotal = Number(monthAtt.total    || 0);
-  var pPct   = Number(overallAtt.percentage || _pct(pPres, pTotal));
+  addWidget('parentTopicWidget', `
+    <h4>&#128200; Topic Performance</h4>
+    <div id="parentTopicProgress" style="color:var(--muted);font-size:.9rem;">
+      Topic data appears after first assessment.</div>`);
 
-  // Fee
-  var fee = d.feeSummary || null;
+  addWidget('parentPapersWidget', `
+    <h4>&#128196; Question Papers</h4>
+    <div id="parentQuestionPapersList" style="color:var(--muted);font-size:.9rem;">
+      Loading question papers…</div>`);
 
-  // Tests
-  var tests = d.weeklyTests || [];
+  addWidget('parentTopicsWidget', `
+    <h4>&#127919; Weak &amp; Strong Topics</h4>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:5px;
+        text-transform:uppercase;letter-spacing:.06em;">Needs Focus</div>
+      <div id="parentWeakTopics" style="color:var(--muted);font-size:.88rem;">Loading…</div>
+    </div>
+    <div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:5px;
+        text-transform:uppercase;letter-spacing:.06em;">Strong Areas</div>
+      <div id="parentStrongTopics" style="color:var(--muted);font-size:.88rem;">Loading…</div>
+    </div>`);
 
-  // MCQ
-  var mcqSet = d.dailyMcqSet || {};
-  var mcqQs  = Array.isArray(mcqSet.questions) ? mcqSet.questions : [];
-  var answered  = mcqQs.filter(function(q) { return q.selected_index !== null && q.selected_index !== undefined; });
-  var corrCount = answered.filter(function(q) { return q.is_correct === 1 || q.is_correct === true; }).length;
+  addWidget('parentSummaryWidget', `
+    <h4>&#128202; Quick Summary</h4>
+    <div class="metric-row">
+      <span class="metric-label">Attendance %</span>
+      <span class="metric-value up" id="parentSummaryAttendance">--</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">MCQ Score</span>
+      <span class="metric-value" id="parentSummaryMcq">--</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Fee Pending</span>
+      <span class="metric-value" id="parentSummaryFee">--</span>
+    </div>
+    <div class="dash-updated" id="parentSummaryUpdated">Last updated: --</div>`);
+};
 
-  // Papers
-  var papers = d.questionPapers || [];
+/**
+ * Inject ALL parent-tab data directly from the raw API response object.
+ * Never reads localStorage — always uses the live data passed in.
+ *
+ * @param {object} raw   — the full object returned by API.getParentReport()
+ * @param {object} student — the student sub-object from that same response
+ */
+window.injectParentTabData = function (raw, student) {
+  // Always guarantee widgets exist first
+  window.ensureParentExtraWidgets();
+
+  // ── Normalise the data ────────────────────────────────────────────────────
+  // The server spreads fullData AND nests it under .report, so we
+  // accept either shape transparently.
+  const d = raw || {};
+
+  // Attendance — server puts it in attendanceSummary.month
+  const monthAtt   = d.attendanceSummary?.month   || d.attendance || {};
+  const overallAtt = d.attendanceSummary?.overall  || d.attendanceSummary?.month || d.attendance || {};
+  const pres    = Number(monthAtt.present  || 0);
+  const tot     = Number(monthAtt.total    || 0);
+  const overallPct = Number(overallAtt.percentage ||
+    (tot ? Math.round((pres / tot) * 100) : 0));
+
+  // Fee — server builds feeSummary from fee_payments table
+  const fee = d.feeSummary || null;
+
+  // Weekly tests — array from weekly_tests table
+  const weeklyTests = Array.isArray(d.weeklyTests) ? d.weeklyTests : [];
+
+  // MCQ — dailyMcqSet with questions array
+  const mcqSet  = d.dailyMcqSet || {};
+  const mcqQs   = Array.isArray(mcqSet.questions) ? mcqSet.questions : [];
+  const answered = mcqQs.filter(q =>
+    q.selected_index !== null && q.selected_index !== undefined);
+  const correct  = answered.filter(q =>
+    q.is_correct === 1 || q.is_correct === true).length;
+
+  // Question papers
+  const papers = Array.isArray(d.questionPapers) ? d.questionPapers : [];
 
   // Topics
-  var weak   = d.weakTopics   || [];
-  var strong = d.strongTopics || [];
-  var latestA = d.latestAssessment || null;
-  var topicScores = {};
-  if (latestA && latestA.topic_scores) {
-    try { topicScores = JSON.parse(latestA.topic_scores); } catch(e) {}
+  const weakTopics   = Array.isArray(d.weakTopics)   ? d.weakTopics   : [];
+  const strongTopics = Array.isArray(d.strongTopics)  ? d.strongTopics : [];
+  const latestA      = d.latestAssessment || null;
+  let topicScores    = {};
+  if (latestA?.topic_scores) {
+    try { topicScores = JSON.parse(latestA.topic_scores); } catch (_) {}
   } else if (d.topicScores) {
     topicScores = d.topicScores;
   }
 
-  // ── Existing HTML widgets ──
-  _setText('parentAttendanceMonth',         pPres + ' / ' + pTotal + ' days');
-  _setText('parentAttendanceOverall',       pPct + '%');
-  _setText('parentAttendanceStudent',       (student && student.name) ? student.name : 'Linked student');
-  _setText('parentAttendanceProgressLabel', pPct + '%');
-  _setWidth('parentAttendanceProgress',     Math.min(100, pPct) + '%');
-  _setUpdated('parentAttendanceUpdated');
+  // ── 1. ATTENDANCE (existing HTML widgets) ────────────────────────────────
+  _setText('parentAttendanceMonth',         `${pres} / ${tot} days`);
+  _setText('parentAttendanceOverall',       `${overallPct}%`);
+  _setText('parentAttendanceStudent',       student?.name || 'Linked student');
+  _setText('parentAttendanceProgressLabel', `${overallPct}%`);
+  _setWidth('parentAttendanceProgress',     Math.min(100, overallPct) + '%');
+  _stampUpdated('parentAttendanceUpdated');
 
-  _setText('parentFeeBatch',   (student && student.class) ? 'Class ' + student.class : 'Linked batch');
+  // ── 2. FEES (existing HTML widgets) ──────────────────────────────────────
+  _setText('parentFeeBatch', student?.class ? `Class ${student.class}` : 'Linked batch');
   if (fee) {
-    var pending = Number(fee.pending || 0);
-    _setText('parentFeeStatus',  pending > 0 ? 'Rs ' + pending + ' pending' : 'Paid up to date');
-    _setText('parentFeePaid',    'Rs ' + (fee.totalPaid || 0));
-    _setText('parentFeePending', 'Rs ' + (fee.pending   || 0));
+    const pendingAmt = Number(fee.pending || 0);
+    _setText('parentFeeStatus',  pendingAmt > 0 ? `Rs ${pendingAmt} pending` : 'Paid up to date');
+    _setText('parentFeePaid',    `Rs ${Number(fee.totalPaid || 0).toFixed(0)}`);
+    _setText('parentFeePending', `Rs ${Number(fee.pending   || 0).toFixed(0)}`);
   } else {
     _setText('parentFeeStatus',  'No fee entries yet');
     _setText('parentFeePaid',    'Rs 0');
     _setText('parentFeePending', 'Rs 0');
   }
-  _setUpdated('parentFeeUpdated');
+  _stampUpdated('parentFeeUpdated');
 
-  // ── Extra widgets ──
-
-  // Weekly tests
-  if (tests.length) {
-    _setHTML('parentWeeklyTestsList', tests.slice(0, 5).map(function(t) {
-      var sc  = Number(t.marks_obtained || 0);
-      var tot = Number(t.total_marks    || 100);
-      var p   = tot ? Math.round((sc / tot) * 100) : 0;
-      var col = p >= 75 ? 'var(--green)' : p >= 50 ? 'var(--yellow)' : 'var(--pink)';
-      return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);'
-           + 'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
-           + '<div><strong style="font-size:0.88rem;">' + (t.title || 'Test') + '</strong>'
-           + '<div style="font-size:0.76rem;color:var(--muted);">' + (t.test_date || '') + '</div>'
-           + (t.notes ? '<div style="font-size:0.75rem;color:var(--muted);">' + t.notes + '</div>' : '')
-           + '</div>'
-           + '<span style="font-weight:700;color:' + col + ';">' + sc + '/' + tot
-           + ' <span style="font-size:0.76rem;opacity:0.8;">(' + p + '%)</span></span></div>';
-    }).join(''));
+  // ── 3. WEEKLY TESTS (dynamic widget) ─────────────────────────────────────
+  if (weeklyTests.length === 0) {
+    _setHTML('parentWeeklyTestsList',
+      '<span style="color:var(--muted);font-size:.88rem;">No weekly test marks entered yet. ' +
+      'They will appear here once your teacher adds them.</span>');
   } else {
-    _setText('parentWeeklyTestsList', 'No test marks entered yet.');
+    _setHTML('parentWeeklyTestsList', weeklyTests.slice(0, 8).map(t => {
+      const sc  = Number(t.marks_obtained || 0);
+      const tot = Number(t.total_marks    || 100);
+      const pct = tot ? Math.round((sc / tot) * 100) : 0;
+      const col = pct >= 75 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--pink)';
+      return `
+        <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);
+          display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+          <div>
+            <strong style="font-size:.88rem;">${t.title || 'Test'}</strong>
+            <div style="font-size:.76rem;color:var(--muted);margin-top:2px;">${t.test_date || ''}</div>
+            ${t.notes ? `<div style="font-size:.75rem;color:var(--muted);">${t.notes}</div>` : ''}
+          </div>
+          <span style="font-weight:700;color:${col};white-space:nowrap;">
+            ${sc}/${tot} <span style="font-size:.76rem;opacity:.8;">(${pct}%)</span>
+          </span>
+        </div>`;
+    }).join(''));
   }
-  _setUpdated('parentWeeklyTestsUpdated');
+  _stampUpdated('parentWeeklyTestsUpdated');
 
-  // MCQ
-  _setText('parentMcqSummaryWidget', mcqSet.batchTitle
-    ? mcqSet.batchTitle + ' — ' + corrCount + '/' + mcqQs.length + ' correct'
-    : 'No active MCQ batch right now.');
-  _setHTML('parentMcqListWidget', mcqQs.slice(0, 6).map(function(q, i) {
-    var att = q.selected_index !== null && q.selected_index !== undefined;
-    var ok  = q.is_correct === 1 || q.is_correct === true;
-    return '<div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);">'
-         + '<div style="font-weight:700;font-size:0.86rem;">Q' + (i+1) + ': ' + (q.question || 'Question') + '</div>'
-         + '<div style="font-size:0.8rem;margin-top:5px;color:' + (att ? (ok ? 'var(--green)' : 'var(--yellow)') : 'var(--muted)') + ';">'
-         + (att ? (ok ? '&#10003; Correct' : '&#10007; Needs review') : 'Not attempted yet')
-         + '</div></div>';
+  // ── 4. MCQ PERFORMANCE (dynamic widget) ──────────────────────────────────
+  _setText('parentMcqSummary',
+    mcqQs.length
+      ? `${mcqSet.batchTitle || 'Current batch'} — ${answered.length}/${mcqQs.length} attempted, ${correct} correct`
+      : 'No active MCQ batch right now.');
+  _setHTML('parentMcqList', mcqQs.slice(0, 6).map((q, i) => {
+    const att = q.selected_index !== null && q.selected_index !== undefined;
+    const ok  = q.is_correct === 1 || q.is_correct === true;
+    const col = att ? (ok ? 'var(--green)' : 'var(--pink)') : 'var(--muted)';
+    const lbl = att ? (ok ? '✓ Correct' : '✗ Needs review') : 'Not attempted';
+    return `
+      <div style="padding:10px 0;border-top:1px solid rgba(255,255,255,.06);
+        display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:.8rem;color:var(--blue);font-weight:700;margin-bottom:2px;">
+            Q${q.question_no || (i + 1)}</div>
+          ${q.question ? `<div style="font-size:.85rem;color:var(--text);line-height:1.5;">${q.question}</div>` : ''}
+        </div>
+        <div style="color:${col};font-weight:700;font-size:.82rem;white-space:nowrap;">${lbl}</div>
+      </div>`;
   }).join(''));
-  _setUpdated('parentMcqUpdated');
+  _stampUpdated('parentMcqUpdated');
 
-  // Topic progress
-  var topicEntries = Object.entries(topicScores);
-  if (topicEntries.length) {
-    _setHTML('parentTopicProgressWidget', topicEntries.slice(0, 6).map(function(pair) {
-      var name = pair[0], score = pair[1];
-      var pct = Number(score) || 0;
-      var col = pct >= 75 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
-      return '<div style="margin-bottom:10px;">'
-           + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">'
-           + '<span>' + name + '</span><span style="color:' + col + ';font-weight:700;">' + pct + '%</span></div>'
-           + '<div style="height:6px;background:rgba(255,255,255,0.07);border-radius:50px;overflow:hidden;">'
-           + '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:50px;"></div>'
-           + '</div></div>';
-    }).join(''));
-  } else {
-    _setText('parentTopicProgressWidget', 'Topic data appears after first assessment.');
-  }
+  // ── 5. TOPIC PERFORMANCE (dynamic widget) ────────────────────────────────
+  const topicEntries = Object.entries(topicScores);
+  _setHTML('parentTopicProgress',
+    topicEntries.length
+      ? topicEntries.map(([name, score]) => {
+          const pct = Number(score) || 0;
+          const col = pct >= 75 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
+          return `
+            <div style="margin-bottom:11px;">
+              <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px;">
+                <span>${name}</span>
+                <span style="color:${col};font-weight:700;">${pct}%</span>
+              </div>
+              <div style="height:6px;background:rgba(255,255,255,.07);border-radius:50px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${col};border-radius:50px;
+                  transition:width .5s;"></div>
+              </div>
+            </div>`;
+        }).join('')
+      : '<span style="color:var(--muted);font-size:.88rem;">Topic data appears after first assessment.</span>');
 
-  // Question papers
-  if (papers.length) {
-    _setHTML('parentQuestionPapersWidget', papers.slice(0, 5).map(function(p) {
-      return '<a href="' + p.resource_url + '" target="_blank" rel="noreferrer" style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#E8E8F5;text-decoration:none;">'
-           + '<span style="font-size:0.88rem;">' + p.title + '</span>'
-           + '<span style="color:#4D9EFF;font-size:0.82rem;">Open &#8599;</span></a>';
-    }).join(''));
-  } else {
-    _setText('parentQuestionPapersWidget', 'No papers posted yet.');
-  }
+  // ── 6. QUESTION PAPERS (dynamic widget) ──────────────────────────────────
+  _setHTML('parentQuestionPapersList',
+    papers.length
+      ? papers.slice(0, 5).map(p =>
+          `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);
+            display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:.88rem;font-weight:600;">${p.title}</div>
+              <div style="font-size:.76rem;color:var(--muted);">
+                Class ${p.class_scope || 'all'} · ${p.resource_type || 'doc'} · ${p.posted_at || ''}</div>
+            </div>
+            <a href="${p.resource_url}" target="_blank" rel="noreferrer"
+              style="color:var(--blue);font-weight:700;font-size:.82rem;white-space:nowrap;">
+              Open ↗</a>
+          </div>`).join('')
+      : '<span style="color:var(--muted);font-size:.88rem;">No question papers posted yet.</span>');
 
-  // Weak / strong topics
-  if (weak.length) {
-    _setHTML('parentWeakTopicsWidget', weak.map(function(t) {
-      return '<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;'
-           + 'background:rgba(255,45,120,0.12);color:#FF2D78;font-size:0.78rem;font-weight:700;">' + t + '</span>';
-    }).join(''));
-  } else {
-    _setText('parentWeakTopicsWidget', 'No weak topics yet.');
-  }
-  if (strong.length) {
-    _setHTML('parentStrongTopicsWidget', strong.map(function(t) {
-      return '<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;'
-           + 'background:rgba(0,229,160,0.12);color:#00E5A0;font-size:0.78rem;font-weight:700;">' + t + '</span>';
-    }).join(''));
-  } else {
-    _setText('parentStrongTopicsWidget', 'No strong topics yet.');
-  }
+  // ── 7. WEAK / STRONG TOPICS (dynamic widget) ─────────────────────────────
+  _setHTML('parentWeakTopics',
+    weakTopics.length
+      ? weakTopics.map(t =>
+          `<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;
+            background:rgba(255,45,120,.12);color:#FF2D78;font-size:.78rem;font-weight:700;">${t}</span>`
+        ).join('')
+      : '<span style="color:var(--muted);font-size:.88rem;">No weak topics identified yet.</span>');
+  _setHTML('parentStrongTopics',
+    strongTopics.length
+      ? strongTopics.map(t =>
+          `<span style="display:inline-block;margin:3px;padding:4px 12px;border-radius:50px;
+            background:rgba(0,229,160,.12);color:#00E5A0;font-size:.78rem;font-weight:700;">${t}</span>`
+        ).join('')
+      : '<span style="color:var(--muted);font-size:.88rem;">No strong topics identified yet.</span>');
 
-  // Summary card
-  _setText('parentSummaryAttendanceWidget', pPct + '% (' + pPres + '/' + pTotal + ')');
-  _setText('parentSummaryMcqWidget',        mcqQs.length ? corrCount + '/' + mcqQs.length + ' correct' : 'No MCQ yet');
-  _setText('parentSummaryFeeWidget',        fee ? 'Rs ' + (fee.pending || 0) + ' pending' : 'No data');
-  _setUpdated('parentSummaryUpdated');
-}
+  // ── 8. QUICK SUMMARY (dynamic widget) ────────────────────────────────────
+  _setText('parentSummaryAttendance', `${overallPct}% (${pres}/${tot})`);
+  _setText('parentSummaryMcq',
+    mcqQs.length ? `${correct}/${mcqQs.length} correct` : 'No MCQ yet');
+  _setText('parentSummaryFee',
+    fee ? `Rs ${Number(fee.pending || 0).toFixed(0)} pending` : 'No data');
+  _stampUpdated('parentSummaryUpdated');
+};
 
-// ── PARENT DASHBOARD (ai-parentreport.html) ────────────────────
-function buildFallbackAiReport(student, data) {
-  var name   = (student && student.name) ? student.name : 'Student';
-  var weak   = (data && data.weakTopics)   || [];
-  var strong = (data && data.strongTopics) || [];
-  var att    = (data && data.attendanceSummary && data.attendanceSummary.month) || (data && data.attendance) || {};
-  var score  = (data && data.latestAssessment && data.latestAssessment.total)
-    ? Math.round((data.latestAssessment.score / data.latestAssessment.total) * 100) : 0;
-  return {
-    overallSummary: name + ' is progressing steadily. Latest score: ' + score + '%. Attendance: ' + (att.present||0) + '/' + (att.total||0) + ' days this month.',
-    highlights: [
-      strong.length ? 'Strong topics: ' + strong.join(', ') : 'Keep encouraging regular practice.',
-      'Attendance is tracked and updated by the teacher.'
-    ],
-    concerns: weak.length ? ['Needs extra attention in: ' + weak.join(', ')] : ['No major weak topics identified.'],
-    parentTips: ['Ask your child to revise one weak topic for 20–30 min daily.', 'Review attendance and test performance together each week.'],
-    nextWeekFocus: weak.length ? 'Focus on ' + weak[0] + ' and keep practising recent test topics.' : 'Maintain consistency with revision and daily practice.'
-  };
-}
-
+// ── ai-parentreport.html — standalone parent report page ──────────────────────
 async function setupParentDashboard() {
-  if (!localStorage.getItem('ilearn_parent_token')) { window.location.href = 'index.html'; return; }
+  if (!localStorage.getItem('ilearn_parent_token')) {
+    window.location.href = 'index.html';
+    return;
+  }
   try {
-    var raw     = await API.getParentReport();
-    var data    = raw.report || raw;
-    var student = raw.student || data.student || {};
+    // Single fetch, use top-level fields (server spreads everything at root)
+    const raw     = await API.getParentReport();
+    const student = raw.student || {};
 
-    var ai = null;
-    try { ai = await API.getParentAIReport(); } catch(e) {}
-    if (!ai || (!ai.overallSummary && !ai.aiReport)) ai = buildFallbackAiReport(student, data);
-    if (ai.aiReport) ai = ai.aiReport;
+    let aiReport = null;
+    try {
+      const aiRes = await API.getParentAIReport();
+      aiReport = aiRes.aiReport || aiRes;
+    } catch (_) {}
+    if (!aiReport || !aiReport.overallSummary) {
+      aiReport = _buildFallbackAiReport(student, raw);
+    }
 
-    var topbar = document.querySelector('.topbar');
+    const topbar = document.querySelector('.topbar');
     if (topbar && !document.getElementById('roleDashboardProfile')) {
-      var att = (data.attendanceSummary && data.attendanceSummary.month) || data.attendance || {};
+      const monthAtt = raw.attendanceSummary?.month || raw.attendance || {};
       topbar.insertAdjacentHTML('afterend', dashboardProfileMarkup(
         'Parent Profile', 'Parent of ' + (student.name || 'Student'),
         [
@@ -454,55 +544,101 @@ async function setupParentDashboard() {
           { label: 'Student',    value: student.name  || 'Linked student' },
           { label: 'Class',      value: student.class ? 'Class ' + student.class : 'N/A' },
           { label: 'Mobile',     value: student.mobile || 'N/A' },
-          { label: 'Attendance', value: formatAttendanceLabel(att.present, att.total) }
-        ], 'Logout', 'API.logoutParent'));
+          { label: 'Attendance', value: formatAttendanceLabel(monthAtt.present, monthAtt.total) }
+        ],
+        'Logout', 'API.logoutParent'
+      ));
     }
 
-    if (typeof renderReport === 'function' && student.name) {
-      var assessments = data.assessmentHistory || [];
-      var latest      = data.latestAssessment  || assessments[0] || null;
-      var previous    = assessments[1] || null;
-      var prevTopics  = {};
-      if (previous && previous.topic_scores) { try { prevTopics = JSON.parse(previous.topic_scores); } catch(e) {} }
-      var topicScores = {};
-      if (latest && latest.topic_scores) { try { topicScores = JSON.parse(latest.topic_scores); } catch(e) {} }
-      else if (data.topicScores) { topicScores = data.topicScores; }
-      var mAtt = (data.attendanceSummary && data.attendanceSummary.month) || data.attendance || {};
+    if (typeof renderReport === 'function') {
+      const assessments  = raw.assessmentHistory || [];
+      const latest       = raw.latestAssessment  || assessments[0] || null;
+      const previous     = assessments[1] || null;
+      const prevTopics   = previous?.topic_scores ? (() => { try { return JSON.parse(previous.topic_scores); } catch (_) { return {}; } })() : {};
+      let   topicScores  = {};
+      if (latest?.topic_scores) { try { topicScores = JSON.parse(latest.topic_scores); } catch (_) {} }
+      else if (raw.topicScores) { topicScores = raw.topicScores; }
 
-      renderReport(student.name, 'Class ' + student.class, 'Latest Update', {
-        attendance:     Number(mAtt.present)  || 0,
-        totalDays:      Number(mAtt.total)    || 24,
-        testsCompleted: assessments.length,
-        testsTotal:     Math.max(assessments.length, 1),
-        avgScore:       latest  && latest.total   ? Math.round((latest.score   / latest.total)   * 100) : 0,
-        prevScore:      previous && previous.total ? Math.round((previous.score / previous.total) * 100) : 0,
-        rank: 1, batchSize: 1,
-        weeklySummary:  data.weeklySummary  || null,
-        weakTopics:     data.weakTopics     || [],
-        strongTopics:   data.strongTopics   || [],
-        recentMcqs:     data.recentMcqs     || [],
-        weeklyTests:    data.weeklyTests    || [],
-        questionPapers: data.questionPapers || [],
-        feeSummary:     data.feeSummary     || null,
-        topics: Object.keys(topicScores).map(function(name) {
-          return { name: name, score: Number(topicScores[name]) || 0, prev: Number(prevTopics[name]) || Number(topicScores[name]) || 0 };
-        })
-      }, ai);
+      // Build attendance from the server response (same fields as index.html)
+      const monthAtt = raw.attendanceSummary?.month || raw.attendance || {};
+
+      renderReport(
+        student.name || 'Student',
+        'Class ' + (student.class || '?'),
+        'Latest Update',
+        {
+          attendance:     Number(monthAtt.present) || 0,
+          totalDays:      Number(monthAtt.total)   || 0,
+          testsCompleted: assessments.length,
+          testsTotal:     Math.max(assessments.length, 1),
+          avgScore:  latest?.total    ? Math.round((latest.score    / latest.total)    * 100) : 0,
+          prevScore: previous?.total  ? Math.round((previous.score  / previous.total)  * 100) : 0,
+          rank: 1, batchSize: 1,
+          weeklySummary:  raw.weeklySummary  || null,
+          weakTopics:     raw.weakTopics     || [],
+          strongTopics:   raw.strongTopics   || [],
+          recentMcqs:     raw.recentMcqs     || [],
+          weeklyTests:    raw.weeklyTests    || [],
+          questionPapers: raw.questionPapers || [],
+          feeSummary:     raw.feeSummary     || null,
+          topics: Object.keys(topicScores).map(name => ({
+            name,
+            score: Number(topicScores[name])  || 0,
+            prev:  Number(prevTopics[name])   || Number(topicScores[name]) || 0
+          }))
+        },
+        aiReport
+      );
     }
-  } catch(err) {
+  } catch (err) {
     console.error('[setupParentDashboard]', err);
-    var main = document.getElementById('mainContent');
-    if (main) main.innerHTML = '<h1>Parent Dashboard</h1>'
-      + '<p style="color:var(--muted);margin-top:12px;">Error: ' + (err.message || 'Unknown') + '</p>'
-      + '<button class="btn-primary" style="margin-top:20px;" onclick="API.logoutParent()">Logout</button>';
+    const main = document.getElementById('mainContent');
+    if (main) {
+      main.innerHTML = `<h1>Parent Dashboard</h1>
+        <p style="color:var(--muted);margin-top:12px;">
+          Could not load report: ${err.message || 'Unknown error'}</p>
+        <button class="btn-primary" style="margin-top:20px;"
+          onclick="API.logoutParent()">Logout</button>`;
+    }
   }
 }
 
-// ── PAGE LOAD ──────────────────────────────────────────────────
-window.addEventListener('load', function() {
-  var p = window.location.pathname;
-  if (/class(9|10|11|12)\.html$/.test(p)) setupStudentDashboard();
-  else if (p.endsWith('ai-parentreport.html'))  setupParentDashboard();
+function _buildFallbackAiReport(student, raw) {
+  const name   = student?.name || 'Student';
+  const weak   = raw.weakTopics   || [];
+  const strong = raw.strongTopics || [];
+  const monthAtt = raw.attendanceSummary?.month || raw.attendance || {};
+  const latest   = raw.latestAssessment || null;
+  const score    = latest?.total ? Math.round((latest.score / latest.total) * 100) : 0;
+  return {
+    overallSummary: `${name} is progressing steadily. Latest score: ${score}%. ` +
+      `Attendance this month: ${monthAtt.present || 0}/${monthAtt.total || 0} days.`,
+    highlights: [
+      strong.length ? 'Strong topics: ' + strong.join(', ') : 'Keep encouraging regular practice.',
+      latest ? 'Assessment completed on ' + (latest.taken_at?.slice(0, 10) || 'recently') + '.'
+             : 'No assessments recorded yet.'
+    ],
+    concerns: weak.length
+      ? ['Needs extra attention in: ' + weak.join(', ') + '.']
+      : ['No major weak topics identified yet.'],
+    parentTips: [
+      'Ask your child to revise one weak topic for 20–30 minutes daily.',
+      'Review attendance and weekly test performance together each week.'
+    ],
+    nextWeekFocus: weak.length
+      ? `Focus on ${weak[0]} and keep practicing recent test topics.`
+      : 'Maintain consistency with revision and daily practice.'
+  };
+}
+
+// ── AUTO-INIT for class pages and standalone parent report page ───────────────
+window.addEventListener('load', () => {
+  const path = window.location.pathname;
+  if (/class(9|10|11|12)\.html$/.test(path)) {
+    setupStudentDashboard();
+  } else if (path.endsWith('ai-parentreport.html')) {
+    setupParentDashboard();
+  }
 });
 
 
