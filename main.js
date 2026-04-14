@@ -1,63 +1,10 @@
-// ============================================================
-//  MAIN.JS — I LEARN ACADEMY
-//  dashboard-auth.js loads first and exposes:
-//    window.ensureParentExtraWidgets()
-//    window.injectParentTabData(rawApiResponse, student)
-//    window.setElementText / setElementWidth / setUpdatedLabel
-// ============================================================
-
-// ── GOOGLE SIGN-IN INITIALIZATION ────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '78739374453-1trbc4voc2jl5binr7e9obv1fmph4dnj.apps.googleusercontent.com'; // <-- paste your Google OAuth Client ID here
-
-function initGoogleSignIn() {
-  if (!window.google || !GOOGLE_CLIENT_ID) return;
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleCredentialResponse,
-    auto_select: false,
-    cancel_on_tap_outside: true
-  });
-  // Render all sign-in buttons on the page
-  document.querySelectorAll('.g_id_signin').forEach(el => {
-    google.accounts.id.renderButton(el, {
-      type: el.dataset.type || 'standard',
-      shape: el.dataset.shape || 'pill',
-      theme: el.dataset.theme || 'filled_blue',
-      text: el.dataset.text || 'continue_with',
-      size: el.dataset.size || 'large',
-      logo_alignment: el.dataset.logoAlignment || 'left',
-      width: el.dataset.width || '320'
-    });
-  });
-}
-
-// Re-render Google buttons whenever login type tab changes
-// (because hidden divs don't render properly until visible)
-function reinitGoogleButtons() {
-  if (!window.google || !GOOGLE_CLIENT_ID) return;
-  try {
-    document.querySelectorAll('.g_id_signin').forEach(el => {
-      el.innerHTML = '';
-      google.accounts.id.renderButton(el, {
-        type: el.dataset.type || 'standard',
-        shape: el.dataset.shape || 'pill',
-        theme: el.dataset.theme || 'filled_blue',
-        text: el.dataset.text || 'continue_with',
-        size: el.dataset.size || 'large',
-        logo_alignment: el.dataset.logoAlignment || 'left',
-        width: el.dataset.width || '320'
-      });
-    });
-  } catch (_) {}
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function showLoginError(msg) {
+function showLoginError(message) {
   const el = document.getElementById('loginErrorMessage');
   if (!el) return;
-  el.textContent = msg || 'Login failed.';
+  el.textContent = message ? message : 'Login failed.';
   el.style.display = 'block';
 }
+
 function clearLoginError() {
   const el = document.getElementById('loginErrorMessage');
   if (!el) return;
@@ -65,56 +12,25 @@ function clearLoginError() {
   el.style.display = 'none';
 }
 
-// Thin wrappers — real implementations are in dashboard-auth.js
-function _setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = (val === null || val === undefined) ? '' : String(val);
-}
-function _setWidth(id, pct) {
-  const el = document.getElementById(id);
-  if (el) el.style.width = pct;
-}
-function _stampUpdated(id) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = 'Last updated: ' + new Date().toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
-}
-
-// ── AUTH HELPERS ──────────────────────────────────────────────────────────────
-function hasActiveStudentSession() { return !!localStorage.getItem('ilearn_token'); }
-function hasActiveParentSession()  { return !!localStorage.getItem('ilearn_parent_token'); }
-function hasActiveTeacherSession() { return !!localStorage.getItem('ilearn_teacher_token'); }
-
-function getCurrentRole() {
-  if (hasActiveTeacherSession()) return 'teacher';
-  if (hasActiveStudentSession()) return 'student';
-  if (hasActiveParentSession())  return 'parent';
-  return null;
-}
-
-function getStored(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) { return {}; }
-}
-
-// ── SCROLL ANIMATIONS ─────────────────────────────────────────────────────────
-const _ioObserver = new IntersectionObserver((entries) => {
+// ── 1. SCROLL ANIMATIONS ──────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.12 });
-document.querySelectorAll('.animate-in').forEach(el => _ioObserver.observe(el));
+document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
 
-// ── STICKY NAV ────────────────────────────────────────────────────────────────
+// ── 2. STICKY NAVBAR ──────────────────────────────────────────────────────────
 window.addEventListener('scroll', () => {
   const nav = document.getElementById('navbar');
   if (nav) nav.style.background = window.scrollY > 50
     ? 'rgba(13,13,26,0.98)' : 'rgba(13,13,26,0.88)';
 });
 
-// ── MOBILE MENU ───────────────────────────────────────────────────────────────
+// ── 3. MOBILE MENU ────────────────────────────────────────────────────────────
 function toggleMenu() {
   const links = document.querySelector('.nav-links');
   if (!links) return;
-  if (links.style.display === 'flex') {
+  const open = links.style.display === 'flex';
+  if (open) {
     links.style.display = 'none';
   } else {
     Object.assign(links.style, {
@@ -128,387 +44,416 @@ function toggleMenu() {
   }
 }
 
-// ── PROFILE PANEL ─────────────────────────────────────────────────────────────
-function toggleProfileMenu() {
-  document.getElementById('profilePanel')?.classList.toggle('open');
-}
-document.addEventListener('click', e => {
-  const menu  = document.getElementById('profileMenu');
-  const panel = document.getElementById('profilePanel');
-  if (menu && panel && !menu.contains(e.target)) panel.classList.remove('open');
-});
-
-function renderNavProfile() {
-  const menu      = document.getElementById('profileMenu');
-  const panel     = document.getElementById('profilePanel');
-  const loginBtn  = document.getElementById('navLoginBtn');
-  const regBtn    = document.getElementById('navRegisterBtn');
-  if (!menu || !panel) return;
-  const role = getCurrentRole();
-  if (!role) {
-    menu.style.display = 'none';
-    if (loginBtn) loginBtn.style.display = '';
-    if (regBtn)   regBtn.style.display   = '';
-    panel.classList.remove('open');
-    return;
-  }
-  if (loginBtn) loginBtn.style.display = 'none';
-  if (regBtn)   regBtn.style.display   = 'none';
-  menu.style.display = 'block';
-
-  let title, subtitle, items, logoutFn;
-  if (role === 'student') {
-    const sp = getStored('ilearn_student_profile');
-    const s  = sp.student || getStored('ilearn_student');
-    const pr = Number(sp.attendance?.present || 0);
-    const to = Number(sp.totalAttendance?.total || 0);
-    const pc = to ? Math.round((pr / to) * 100) : 0;
-    title = s.name || 'Student'; subtitle = 'Student';
-    items = [
-      { label: 'Class',      value: s.class  ? 'Class ' + s.class : 'N/A' },
-      { label: 'Email',      value: s.email  || 'N/A' },
-      { label: 'Attendance', value: to ? pc + '% (' + pr + '/' + to + ')' : 'No data' }
-    ];
-    logoutFn = 'API.logoutStudent()';
-  } else if (role === 'parent') {
-    const pp = getStored('ilearn_parent_profile');
-    const ps = pp.student || getStored('ilearn_parent_student');
-    const monthAtt = pp.attendanceSummary?.month || pp.attendance || {};
-    const pr = Number(monthAtt.present || 0);
-    const to = Number(monthAtt.total   || 0);
-    const pc = to ? Math.round((pr / to) * 100) : 0;
-    title = 'Parent'; subtitle = ps.name ? 'Parent of ' + ps.name : 'Parent';
-    items = [
-      { label: 'Student',    value: ps.name  || 'Linked student' },
-      { label: 'Class',      value: ps.class ? 'Class ' + ps.class : 'N/A' },
-      { label: 'Attendance', value: to ? pc + '% (' + pr + '/' + to + ')' : 'No data' }
-    ];
-    logoutFn = 'API.logoutParent()';
-  } else {
-    const t = getStored('ilearn_teacher');
-    title = t.name || 'Teacher'; subtitle = 'Teacher';
-    items = [
-      { label: 'Name',  value: t.name  || 'I LEARN Staff' },
-      { label: 'Email', value: t.email || 'N/A' }
-    ];
-    logoutFn = 'API.logoutTeacher()';
-  }
-  panel.innerHTML = `<h4>${title}</h4><p>${subtitle}</p>` +
-    items.map(i => `<div class="profile-row"><div class="profile-label">${i.label}</div><div class="profile-value">${i.value}</div></div>`).join('') +
-    `<button class="profile-logout" onclick="${logoutFn}">Logout</button>`;
-}
-
-// ── PARENT DASHBOARD — THE SINGLE SOURCE OF TRUTH ─────────────────────────────
-async function refreshParentDashboard() {
-  if (!hasActiveParentSession()) return;
-  try {
-    const raw = await API.getParentReport();
-    localStorage.setItem('ilearn_parent_profile', JSON.stringify(raw));
-    localStorage.setItem('ilearn_parent_student', JSON.stringify(raw.student || {}));
-    const student = raw.student || {};
-    if (typeof window.injectParentTabData === 'function') {
-      window.injectParentTabData(raw, student);
-    }
-    renderNavProfile();
-  } catch (err) {
-    console.warn('[refreshParentDashboard] failed:', err.message || err);
-  }
-}
-
-// ── STUDENT DATA ──────────────────────────────────────────────────────────────
-async function refreshStudentData() {
-  if (!hasActiveStudentSession()) return;
-  try {
-    const profile = await API.getStudentProfile();
-    localStorage.setItem('ilearn_student_profile', JSON.stringify(profile));
-    const monthAtt   = profile.attendanceSummary?.month   || {};
-    const overallAtt = profile.attendanceSummary?.overall  || monthAtt;
-    const pres = Number(monthAtt.present || 0);
-    const tot  = Number(monthAtt.total   || 0);
-    const pct  = Number(overallAtt.percentage || (tot ? Math.round((pres / tot) * 100) : 0));
-    _setText('studentAttendanceMonth',         `${pres} / ${tot} days`);
-    _setText('studentAttendanceOverall',       `${pct}%`);
-    _setText('studentAttendanceProgressLabel', `${pct}%`);
-    _setWidth('studentAttendanceProgress',     Math.min(100, pct) + '%');
-    _setText('studentAttendanceHint', tot
-      ? `Overall attendance: ${overallAtt.present}/${overallAtt.total} classes marked.`
-      : 'Attendance will appear once your teacher starts marking it.');
-    _stampUpdated('studentAttendanceUpdated');
-    const streak = Number(profile.mcqStreak || 0);
-    _setText('studentStreakValue', streak + ' day' + (streak === 1 ? '' : 's'));
-    _stampUpdated('studentStreakUpdated');
-  } catch (err) {
-    console.warn('[refreshStudentData] failed:', err.message || err);
-  }
-  try {
-    const tt = await API.getLatestTimetable();
-    localStorage.setItem('ilearn_student_timetable', JSON.stringify(tt));
-    renderTodayTimetable();
-  } catch (_) {}
-}
-
-function renderTodayTimetable() {
-  const wrap = document.getElementById('studentTodayTimetable');
-  if (!wrap) return;
-  const state = getStored('ilearn_student_timetable');
-  const schedule = state.timetable?.schedule || state.schedule || {};
-  const plan = schedule.weeklyPlan || schedule.week || {};
-  const dayKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
-  const slots  = Array.isArray(plan[dayKey]) ? plan[dayKey] : [];
-  const colMap = { study:'var(--pink)', practice:'var(--blue)', revision:'var(--green)', doubt:'var(--purple)', test:'#FFD166' };
-  if (!slots.length) {
-    wrap.innerHTML = `<div class="tt-slot"><div class="tt-dot" style="background:var(--blue)"></div><div class="tt-time">${dayKey}</div><div>No slots planned yet.</div></div>`;
-    return;
-  }
-  wrap.innerHTML = slots.slice(0, 4).map(s =>
-    `<div class="tt-slot"><div class="tt-dot" style="background:${colMap[s.type] || 'var(--blue)'}"></div><div class="tt-time">${s.time || ''}</div><div>${s.topic || 'Study'}${s.type ? ' — ' + s.type.charAt(0).toUpperCase() + s.type.slice(1) : ''}</div></div>`
-  ).join('');
-}
-
-// ── GENERIC REFRESH (dispatches by role) ──────────────────────────────────────
-async function refreshRoleData() {
-  const role = getCurrentRole();
-  if (role === 'student') {
-    await refreshStudentData();
-  } else if (role === 'parent') {
-    await refreshParentDashboard();
-    return;
-  }
-  renderNavProfile();
-}
-
-// ── HOME PAGE — SHOW/HIDE SECTIONS BY ROLE ───────────────────────────────────
-function updateHomeForSession() {
-  const role = getCurrentRole();
-
-  document.querySelectorAll('.role-student-only').forEach(el =>
-    el.style.display = (!role || role === 'student') ? '' : 'none');
-  document.querySelectorAll('.role-parent-only').forEach(el =>
-    el.style.display = (!role || role === 'parent') ? '' : 'none');
-  document.querySelectorAll('.role-teacher-only').forEach(el =>
-    el.style.display = role === 'teacher' ? '' : 'none');
-  ['assessment', 'ai-features'].forEach(id => {
-    const sec = document.getElementById(id);
-    if (sec) sec.style.display = role === 'teacher' ? 'none' : '';
-  });
-
-  const tabs = {
-    student: document.getElementById('studentDashTab'),
-    parent:  document.getElementById('parentDashTab'),
-    teacher: document.getElementById('teacherDashTab')
-  };
-  const contents = {
-    student: document.getElementById('tab-student'),
-    parent:  document.getElementById('tab-parent'),
-    teacher: document.getElementById('tab-teacher')
-  };
-
-  Object.keys(tabs).forEach(r => {
-    tabs[r]?.classList.remove('active');
-    if (contents[r]) { contents[r].classList.remove('active'); contents[r].style.display = ''; }
-  });
-
-  if (role === 'student') {
-    tabs.student?.classList.add('active');
-    contents.student?.classList.add('active');
-  } else if (role === 'parent') {
-    tabs.parent?.classList.add('active');
-    contents.parent?.classList.add('active');
-    if (typeof window.ensureParentExtraWidgets === 'function') {
-      window.ensureParentExtraWidgets();
-    }
-  } else if (role === 'teacher') {
-    tabs.teacher?.classList.add('active');
-    if (contents.teacher) { contents.teacher.classList.add('active'); contents.teacher.style.display = 'block'; }
-  }
-
-  let welcomeName = 'Learner';
-  if (role === 'student') {
-    const sp = getStored('ilearn_student_profile');
-    welcomeName = sp.student?.name || getStored('ilearn_student').name || 'Student';
-  } else if (role === 'parent') {
-    const pp = getStored('ilearn_parent_profile');
-    welcomeName = pp.student?.name || getStored('ilearn_parent_student').name || 'Parent';
-  } else if (role === 'teacher') {
-    welcomeName = getStored('ilearn_teacher').name || 'Teacher';
-  }
-  _setText('dashboardWelcomeName', welcomeName);
-  _setText('dashboardWelcomeRole', role ? 'Signed in as ' + role : 'Sign in to view your dashboard');
-  _stampUpdated('dashboardWelcomeUpdated');
-
-  renderNavProfile();
-}
-
-// ── DASHBOARD TABS ────────────────────────────────────────────────────────────
+// ── 4. DASHBOARD TABS ─────────────────────────────────────────────────────────
 function switchTab(tab, el) {
   document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.dash-content').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  const content = document.getElementById('tab-' + tab);
-  if (content) { content.classList.add('active'); if (tab === 'teacher') content.style.display = 'block'; }
+  const tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) {
+    tabEl.classList.add('active');
+    tabEl.style.display = tab === 'teacher' ? 'block' : '';
+  }
 
   if (tab === 'teacher' && hasActiveTeacherSession()) {
-    loadTeacherAttendance(); loadTeacherMcqs(); loadTeacherDoubts();
+    refreshRoleData();
+    loadTeacherAttendance();
+    loadTeacherMcqs();
+    loadTeacherDoubts();
   } else if (tab === 'student' && hasActiveStudentSession()) {
-    refreshStudentData().then(() => { loadStudentResources(); loadStudentDoubts(); });
+    refreshRoleData().then(() => {
+      loadStudentResources();
+      loadStudentDoubts();
+    });
   } else if (tab === 'parent' && hasActiveParentSession()) {
-    if (typeof window.ensureParentExtraWidgets === 'function') window.ensureParentExtraWidgets();
     refreshParentDashboard();
   }
 }
 
-// ── MODALS ────────────────────────────────────────────────────────────────────
+// ── LOGIN MODAL ───────────────────────────────────────────────────────────────
 function openLoginModal() {
   document.getElementById('loginModal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  setLoginType('student');
-  // Re-render Google buttons after modal opens (they need to be visible)
-  setTimeout(reinitGoogleButtons, 100);
+  resetParentOTP();
+  updateAuthRequiredState();
 }
-function closeLoginModal() {
-  document.getElementById('loginModal').classList.remove('open');
-  document.body.style.overflow = '';
-}
-function openRegisterModal() {
-  document.getElementById('registerModal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  showRegStep(1); assessAnswers = {}; currentQ = 0; syncRegisterSubjectVisibility();
-}
-function closeRegisterModal() {
-  document.getElementById('registerModal').classList.remove('open');
-  document.body.style.overflow = '';
-}
+
 function openDoubtModal() {
   const modal = document.getElementById('doubtModal');
-  const msg   = document.getElementById('doubtSubmitMessage');
+  const msg = document.getElementById('doubtSubmitMessage');
   if (msg) { msg.textContent = ''; msg.style.display = 'none'; }
   if (modal) modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 function closeDoubtModal() {
   const modal = document.getElementById('doubtModal');
   if (modal) modal.classList.remove('open');
   document.body.style.overflow = '';
   const q = document.getElementById('doubtQuestionText');
   const i = document.getElementById('doubtQuestionImage');
-  if (q) q.value = ''; if (i) i.value = '';
+  if (q) q.value = '';
+  if (i) i.value = '';
 }
 
-// ── LOGIN TYPE TABS ───────────────────────────────────────────────────────────
-let currentLoginType = 'student';
-function setLoginType(type) {
-  currentLoginType = type;
-  ['student','parent','teacher'].forEach(k => {
-    const fields = document.getElementById('login' + k.charAt(0).toUpperCase() + k.slice(1) + 'Fields');
-    const tab    = document.getElementById('ltab-' + k);
-    if (fields) { fields.style.display = k === type ? 'flex' : 'none'; if (k === type) fields.style.flexDirection = 'column'; }
-    if (tab)    tab.classList.toggle('active', k === type);
-  });
-  // Re-render the Google button for the now-visible section
-  setTimeout(reinitGoogleButtons, 100);
-}
-
-// ── STUDENT LOGIN ─────────────────────────────────────────────────────────────
-async function loginStudentWithPassword() {
-  const email    = (document.getElementById('ls-email')?.value    || '').trim();
-  const password = (document.getElementById('ls-password')?.value || '').trim();
-  clearLoginError();
-  if (!email || !password) { showLoginError('Please enter your email and password.'); return; }
+async function submitStudentDoubt() {
+  const text = (document.getElementById('doubtQuestionText')?.value || '').trim();
+  const image = (document.getElementById('doubtQuestionImage')?.value || '').trim();
+  const msg = document.getElementById('doubtSubmitMessage');
+  if (!text) {
+    if (msg) { msg.textContent = 'Please enter your question.'; msg.style.display = 'block'; }
+    return;
+  }
   try {
-    const data = await API.loginStudent(email, password);
-    closeLoginModal();
-    _redirectStudent(data.student);
-  } catch (err) { showLoginError(err.message || 'Student login failed'); }
+    await API.submitStudentDoubt(text, image || null);
+    if (msg) { msg.textContent = 'Doubt submitted successfully.'; msg.style.display = 'block'; }
+    closeDoubtModal();
+    await loadStudentDoubts();
+  } catch (err) {
+    if (msg) { msg.textContent = err.message || 'Could not submit doubt.'; msg.style.display = 'block'; }
+  }
 }
 
-function _redirectStudent(student) {
-  const isHome = ['/index.html','/',''].includes(window.location.pathname);
+function closeLoginModal() {
+  document.getElementById('loginModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function getStudentDashboardPath(student) {
+  const cls = String(student?.class || student?.cls || '').trim();
+  const dashboards = { '9': 'class9.html', '10': 'class10.html', '11': 'class11.html', '12': 'class12.html' };
+  return dashboards[cls] || 'index.html';
+}
+
+function redirectToStudentDashboard(student) {
+  const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
   if (isHome) {
     updateHomeForSession();
-    refreshStudentData().then(() => { loadStudentResources(); loadStudentDoubts(); });
-    const tab = document.getElementById('studentDashTab');
-    if (tab) switchTab('student', tab);
+    refreshRoleData().then(() => {
+      loadStudentResources();
+      loadStudentDoubts();
+    });
+    const studentTab = document.getElementById('studentDashTab');
+    if (studentTab) switchTab('student', studentTab);
     document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
     return;
   }
   window.location.href = 'index.html#dashboards';
 }
-function _redirectParent() {
-  const isHome = ['/index.html','/',''].includes(window.location.pathname);
+
+function redirectToParentDashboard() {
+  const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
   if (isHome) {
     updateHomeForSession();
     refreshParentDashboard();
-    const tab = document.getElementById('parentDashTab');
-    if (tab) switchTab('parent', tab);
-    document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
-    return;
-  }
-  window.location.href = 'index.html#dashboards';
-}
-function _redirectTeacher() {
-  const isHome = ['/index.html','/',''].includes(window.location.pathname);
-  if (isHome) {
-    updateHomeForSession();
-    loadTeacherAttendance(); loadTeacherMcqs(); loadTeacherDoubts();
-    const tab = document.getElementById('teacherDashTab');
-    if (tab) switchTab('teacher', tab);
+    const parentTab = document.getElementById('parentDashTab');
+    if (parentTab) switchTab('parent', parentTab);
     document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
     return;
   }
   window.location.href = 'index.html#dashboards';
 }
 
-// ── GOOGLE SIGN-IN CALLBACK ───────────────────────────────────────────────────
+function redirectToTeacherDashboard() {
+  const isHome = ['/index.html', '/', ''].includes(window.location.pathname);
+  if (isHome) {
+    updateHomeForSession();
+    if (hasActiveTeacherSession()) {
+      refreshRoleData().then(() => {
+        loadTeacherAttendance();
+        loadTeacherMcqs();
+        loadTeacherDoubts();
+      });
+    }
+    const teacherTab = document.getElementById('teacherDashTab');
+    if (teacherTab) switchTab('teacher', teacherTab);
+    document.getElementById('dashboards')?.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  window.location.href = 'index.html#dashboards';
+}
+
+function hasActiveStudentSession() { return !!localStorage.getItem('ilearn_token'); }
+function hasActiveParentSession() { return !!localStorage.getItem('ilearn_parent_token'); }
+function hasActiveTeacherSession() { return !!localStorage.getItem('ilearn_teacher_token'); }
+function redirectAuthenticatedUser() { return hasActiveStudentSession() || hasActiveParentSession() || hasActiveTeacherSession(); }
+
+function toggleProfileMenu() {
+  const panel = document.getElementById('profilePanel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+}
+
+function updateAuthRequiredState() {
+  const closeBtn = document.querySelector('#loginModal .modal-close');
+  if (!closeBtn) return;
+  closeBtn.style.display = redirectAuthenticatedUser() ? '' : 'none';
+}
+
+async function loginStudentWithPassword() {
+  const email = (document.getElementById('ls-email')?.value || '').trim();
+  const password = (document.getElementById('ls-password')?.value || '').trim();
+  clearLoginError();
+  if (!email || !password) {
+    showLoginError('Please enter your student email and password.');
+    return;
+  }
+  try {
+    const data = await API.loginStudent(email, password);
+    closeLoginModal();
+    redirectToStudentDashboard(data.student);
+  } catch (err) {
+    showLoginError(err.message || 'Student login failed');
+  }
+}
+
+function setLoginType(type) {
+  currentLoginType = type;
+  const groups = {
+    student: document.getElementById('loginStudentFields'),
+    parent: document.getElementById('loginParentFields'),
+    teacher: document.getElementById('loginTeacherFields')
+  };
+  Object.entries(groups).forEach(([key, node]) => {
+    if (!node) return;
+    node.style.display = key === type ? 'flex' : 'none';
+    if (key === type) node.style.flexDirection = 'column';
+  });
+  ['student', 'parent', 'teacher'].forEach((key) => {
+    document.getElementById('ltab-' + key)?.classList.toggle('active', key === type);
+  });
+  resetParentOTP();
+}
+
+function flashInput(id, msg) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.style.borderColor = 'var(--pink)';
+    el.focus();
+    setTimeout(() => el.style.borderColor = '', 3000);
+  }
+  alert(msg);
+}
+
+// ── PARENT OTP LOGIN ──────────────────────────────────────────────────────────
+let parentOTP = null;
+let parentMobile = null;
+let currentLoginType = 'student';
+
+function showOTPError(msg) {
+  const errEl = document.getElementById('parentOTPError');
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+
+async function sendParentOTP() {
+  const raw = (document.getElementById('lp-mobile')?.value || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 10) { flashInput('lp-mobile', 'Please enter a valid 10-digit mobile number.'); return; }
+  const sendBtn = document.querySelector('#parentStep-mobile .btn-primary');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending OTP...'; }
+  try {
+    const data = await API.sendParentOTP(raw);
+    parentMobile = raw;
+    parentOTP = null;
+    document.getElementById('parentStep-mobile').style.display = 'none';
+    document.getElementById('parentStep-otp').style.display = 'flex';
+    document.getElementById('parentStep-otp').style.flexDirection = 'column';
+    document.getElementById('parentMobileDisplay').textContent = raw;
+    const info = data.studentFound
+      ? `OTP sent to ${raw} ✅\nStudent found: ${data.studentName || 'Your child'} (Class ${data.studentClass || '?'})\n\nEnter the OTP received on this number.`
+      : `OTP sent to ${raw} ✅\n\nEnter the OTP received on this number.`;
+    setTimeout(() => alert(info), 80);
+  } catch (err) {
+    showOTPError(err.message || 'Failed to send OTP. Please try again.');
+  } finally {
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP 📱'; }
+  }
+}
+
+async function verifyParentOTP() {
+  const entered = (document.getElementById('lp-otp')?.value || '').trim();
+  const errEl = document.getElementById('parentOTPError');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (!entered) { showOTPError('Please enter the 4-digit OTP.'); return; }
+  if (!parentMobile) { showOTPError('Please request an OTP first.'); return; }
+  const verifyBtn = document.querySelector('#parentStep-otp .btn-primary');
+  if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying...'; }
+  try {
+    const data = await API.verifyParentOTP(parentMobile, entered);
+    closeLoginModal();
+    parentOTP = null;
+    alert(`OTP verified! ✅\n\n${data.message || 'Redirecting to parent dashboard...'}`);
+    redirectToParentDashboard();
+  } catch (err) {
+    showOTPError(err.message || 'Incorrect OTP. Please try again.');
+    const input = document.getElementById('lp-otp');
+    if (input) { input.style.borderColor = '#FF2D78'; setTimeout(() => input.style.borderColor = '', 2500); }
+  } finally {
+    if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & View Report →'; }
+  }
+}
+
+function resetParentOTP() {
+  parentOTP = null;
+  parentMobile = null;
+  const mobileStep = document.getElementById('parentStep-mobile');
+  const otpStep = document.getElementById('parentStep-otp');
+  const errEl = document.getElementById('parentOTPError');
+  const mInput = document.getElementById('lp-mobile');
+  const oInput = document.getElementById('lp-otp');
+  if (mobileStep) { mobileStep.style.display = 'flex'; mobileStep.style.flexDirection = 'column'; }
+  if (otpStep) otpStep.style.display = 'none';
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (mInput) mInput.value = '';
+  if (oInput) oInput.value = '';
+}
+
 async function handleCredentialResponse(response) {
   clearLoginError();
   if (!response?.credential) { showLoginError('Google login failed. Please try again.'); return; }
   try {
     if (currentLoginType === 'teacher') {
-      const d = await API.loginTeacherWithGoogle(response.credential);
-      localStorage.setItem('ilearn_teacher', JSON.stringify(d.teacher || {}));
-      closeLoginModal(); _redirectTeacher();
-    } else if (currentLoginType === 'parent') {
-      await API.loginParentWithGoogle(response.credential);
-      closeLoginModal(); _redirectParent();
-    } else {
-      // Default: student login
-      const d = await API.loginStudentWithGoogle(response.credential);
-      closeLoginModal(); _redirectStudent(d.student);
+      const data = await API.loginTeacherWithGoogle(response.credential);
+      closeLoginModal();
+      localStorage.setItem('ilearn_teacher', JSON.stringify(data.teacher || {}));
+      redirectToTeacherDashboard();
+      return;
     }
-  } catch (err) { showLoginError(err.message || 'Google login failed. Please try again.'); }
+    if (currentLoginType === 'parent') {
+      const data = await API.loginParentWithGoogle(response.credential);
+      closeLoginModal();
+      redirectToParentDashboard();
+      return;
+    }
+    const data = await API.loginStudentWithGoogle(response.credential);
+    closeLoginModal();
+    redirectToStudentDashboard(data.student);
+  } catch (err) {
+    showLoginError(err.message || 'Google login failed');
+  }
 }
 
-// ── TEACHER LOGIN ─────────────────────────────────────────────────────────────
-async function loginTeacher() {
-  const email    = (document.getElementById('lt-email')?.value    || '').trim();
-  const password = (document.getElementById('lt-password')?.value || '').trim();
-  clearLoginError();
-  if (!email || !password) { showLoginError('Please enter teacher email and password.'); return; }
-  try {
-    const data = await API.loginTeacher(email, password);
-    localStorage.setItem('ilearn_teacher', JSON.stringify(data.teacher || {}));
-    closeLoginModal(); _redirectTeacher();
-  } catch (err) { showLoginError(err.message || 'Teacher login failed'); }
+// ── REGISTER MODAL ────────────────────────────────────────────────────────────
+function openRegisterModal() {
+  document.getElementById('registerModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  showRegStep(1);
+  assessAnswers = {};
+  currentQ = 0;
+  syncRegisterSubjectVisibility();
 }
-
-// ── REGISTER + ASSESSMENT ─────────────────────────────────────────────────────
+function closeRegisterModal() {
+  document.getElementById('registerModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
 function showRegStep(n) {
-  ['regStep1','regStep2','regStep3'].forEach((id, i) => {
+  ['regStep1', 'regStep2', 'regStep3'].forEach((id, i) => {
     const el = document.getElementById(id);
-    if (el) { el.style.display = i === n - 1 ? 'flex' : 'none'; if (i === n-1) el.style.flexDirection = 'column'; }
+    if (el) el.style.display = (i === n - 1) ? 'flex' : 'none';
+    if (el && i === n - 1) el.style.flexDirection = 'column';
   });
 }
 function syncRegisterSubjectVisibility() {
-  const cls = document.getElementById('regClass');
+  const clsEl = document.getElementById('regClass');
   const row = document.getElementById('regSubjectRow');
-  const sub = document.getElementById('regSubject');
-  if (!cls || !row || !sub) return;
-  const needs = cls.value === '11' || cls.value === '12';
-  row.style.display = needs ? 'flex' : 'none';
-  if (!needs) sub.value = '';
+  const subjectEl = document.getElementById('regSubject');
+  if (!clsEl || !row || !subjectEl) return;
+  const needsSubject = clsEl.value === '11' || clsEl.value === '12';
+  row.style.display = needsSubject ? 'flex' : 'none';
+  if (!needsSubject) subjectEl.value = '';
 }
-const _regClsEl = document.getElementById('regClass');
-if (_regClsEl) _regClsEl.addEventListener('change', syncRegisterSubjectVisibility);
+const regClassField = document.getElementById('regClass');
+if (regClassField) regClassField.addEventListener('change', syncRegisterSubjectVisibility);
+
+// ── CLASS-SPECIFIC QUESTIONS ──────────────────────────────────────────────────
+const classQuestions = {
+  '9': [
+    { q: 'Which of the following is an irrational number?', opts: ['√4', '√9', '√2', '√16'], ans: 2, topic: 'Real Numbers' },
+    { q: 'Solve: 2x + 5 = 13. Find x.', opts: ['3', '4', '5', '6'], ans: 1, topic: 'Algebra' },
+    { q: 'If A={1,2,3} and B={2,3,4}, then A ∩ B = ?', opts: ['{1}', '{4}', '{2,3}', '{1,2,3,4}'], ans: 2, topic: 'Set Language' },
+    { q: 'In a triangle, if two angles are 60° and 70°, the third is:', opts: ['40°', '50°', '60°', '70°'], ans: 1, topic: 'Geometry' },
+    { q: 'sin(30°) = ?', opts: ['1', '√3/2', '1/2', '1/√2'], ans: 2, topic: 'Trigonometry' },
+    { q: 'Area of circle with radius 7 cm (π=22/7):', opts: ['44 cm²', '154 cm²', '49 cm²', '22 cm²'], ans: 1, topic: 'Mensuration' },
+    { q: 'Distance between (0,0) and (3,4) is:', opts: ['5', '7', '12', '25'], ans: 0, topic: 'Coordinate Geometry' },
+    { q: 'Mean of 5, 10, 15, 20, 25 is:', opts: ['10', '15', '20', '25'], ans: 1, topic: 'Statistics' },
+    { q: 'A bag has 3 red and 2 blue balls. P(red) = ?', opts: ['2/5', '3/5', '1/5', '3/2'], ans: 1, topic: 'Probability' },
+    { q: 'Volume of a cube with side 4 cm is:', opts: ['16 cm³', '24 cm³', '48 cm³', '64 cm³'], ans: 3, topic: 'Mensuration' },
+  ],
+  '10': [
+    { q: 'HCF of 12 and 18 is:', opts: ['2', '3', '6', '9'], ans: 2, topic: 'Real Numbers' },
+    { q: 'Roots of x² − 5x + 6 = 0 are:', opts: ['2, 3', '1, 6', '−2, −3', '2, −3'], ans: 0, topic: 'Algebra' },
+    { q: 'If f(x) = 2x + 1, then f(3) = ?', opts: ['5', '6', '7', '8'], ans: 2, topic: 'Relations and Functions' },
+    { q: 'tan(45°) = ?', opts: ['0', '1/√3', '1', '√3'], ans: 2, topic: 'Trigonometry' },
+    { q: 'Slope of line joining (1,2) and (3,6) is:', opts: ['1', '2', '3', '4'], ans: 1, topic: 'Coordinate Geometry' },
+    { q: 'In a 3-4-5 right triangle, hypotenuse is:', opts: ['3', '4', '5', '6'], ans: 2, topic: 'Geometry' },
+    { q: 'Number of tangents from external point to a circle:', opts: ['0', '1', '2', '3'], ans: 2, topic: 'Geometry' },
+    { q: 'Volume of sphere radius 3 (π=22/7):', opts: ['28π', '36π', '48π', '54π'], ans: 1, topic: 'Mensuration' },
+    { q: 'Standard deviation measures:', opts: ['Average', 'Spread', 'Frequency', 'Range'], ans: 1, topic: 'Statistics' },
+    { q: 'P(A)=0.4, P(B)=0.5, P(A∩B)=0.2. P(A∪B)=?', opts: ['0.5', '0.6', '0.7', '0.9'], ans: 2, topic: 'Probability' },
+  ],
+  '11': [
+    { q: 'If A has 5 elements, number of subsets = ?', opts: ['16', '25', '32', '64'], ans: 2, topic: 'Sets' },
+    { q: 'Value of i² is:', opts: ['1', '−1', 'i', '−i'], ans: 1, topic: 'Complex Numbers' },
+    { q: 'lim(x→0) sin(x)/x = ?', opts: ['0', '∞', '1', '−1'], ans: 2, topic: 'Limits' },
+    { q: 'd/dx (x⁴) = ?', opts: ['x³', '4x³', '4x', '3x³'], ans: 1, topic: 'Differentiation' },
+    { q: '⁵P₂ = ?', opts: ['10', '15', '20', '25'], ans: 2, topic: 'Permutations' },
+    { q: '⁵C₂ = ?', opts: ['5', '10', '15', '20'], ans: 1, topic: 'Combinations' },
+    { q: 'sin²θ + cos²θ = ?', opts: ['0', '1', '2', 'tan²θ'], ans: 1, topic: 'Trigonometry' },
+    { q: 'Slope of 3x − 4y + 5 = 0 is:', opts: ['3/4', '−3/4', '4/3', '−4/3'], ans: 0, topic: 'Lines' },
+    { q: 'Matrix [[1,0],[0,1]] is called:', opts: ['Zero', 'Identity', 'Scalar', 'Diagonal'], ans: 1, topic: 'Matrices' },
+    { q: 'Mean of first 10 natural numbers:', opts: ['4.5', '5', '5.5', '6'], ans: 2, topic: 'Statistics' },
+  ],
+  '12': [
+    { q: '∫ x² dx = ?', opts: ['x³', 'x³/3 + C', '2x', '3x²'], ans: 1, topic: 'Integration' },
+    { q: 'd/dx (e^x) = ?', opts: ['xe^(x−1)', 'e^x', 'e^(x−1)', '0'], ans: 1, topic: 'Differentiation' },
+    { q: '|A| for A=[[2,1],[4,3]] is:', opts: ['2', '6', '8', '10'], ans: 0, topic: 'Matrices' },
+    { q: 'Order of y″ + y′ = x is:', opts: ['1', '2', '3', '0'], ans: 1, topic: 'Differential Equations' },
+    { q: 'P(A|B) when P(A∩B)=0.2, P(B)=0.4:', opts: ['0.2', '0.4', '0.5', '0.8'], ans: 2, topic: 'Probability' },
+    { q: 'If a × b = 0, vectors are:', opts: ['Perpendicular', 'Parallel', 'Equal', 'Opposite'], ans: 1, topic: 'Vectors' },
+    { q: '∫₀¹ x dx = ?', opts: ['0', '1/2', '1', '2'], ans: 1, topic: 'Definite Integrals' },
+    { q: 'Inverse of f(x) = 2x + 3 is:', opts: ['(x−3)/2', '(x+3)/2', '2x−3', '(3−x)/2'], ans: 0, topic: 'Relations and Functions' },
+    { q: 'Linear programming finds:', opts: ['Average value', 'Optimal value', 'Exact value', 'Random value'], ans: 1, topic: 'Linear Programming' },
+    { q: 'In binomial dist, n=10, p=0.4, mean=?', opts: ['2', '4', '6', '8'], ans: 1, topic: 'Probability Distributions' },
+  ]
+};
+
+let assessAnswers = {};
+let currentQ = 0;
+let activeQuestions = [];
+let studentData = {};
+
+async function startAssessment() {
+  const name = (document.getElementById('regName')?.value || '').trim();
+  const cls = (document.getElementById('regClass')?.value || '').trim();
+  const subject = (document.getElementById('regSubject')?.value || '').trim();
+  const mobile = (document.getElementById('regMobile')?.value || '').trim();
+  const email = (document.getElementById('regEmail')?.value || '').trim();
+  const password = (document.getElementById('regPassword')?.value || '').trim();
+
+  if (!name) { flashField('regName', 'Please enter student name.'); return; }
+  if (!cls) { flashField('regClass', 'Please select your class.'); return; }
+  if ((cls === '11' || cls === '12') && !subject) { flashField('regSubject', 'Please choose Maths or Business Maths.'); return; }
+  if (mobile.replace(/\D/g, '').length < 10) { flashField('regMobile', 'Enter valid 10-digit mobile.'); return; }
+  if (!email || !email.includes('@')) { flashField('regEmail', 'Enter valid email address.'); return; }
+  if (password.length < 6) { flashField('regPassword', 'Password must be at least 6 characters.'); return; }
+
+  try {
+    await API.registerStudent(name, cls, mobile, email, password, subject || 'maths');
+  } catch (err) {
+    alert(err.message || 'Registration failed. Please try again.');
+    return;
+  }
+
+  studentData = { name, cls, class: cls, subject: subject || 'maths', mobile, email };
+  localStorage.setItem('ilearn_student', JSON.stringify(studentData));
+  activeQuestions = classQuestions[cls] || classQuestions['9'];
+  assessAnswers = {};
+  currentQ = 0;
+  document.getElementById('testTitle').textContent = 'Class ' + cls + ' Diagnostic Test';
+  document.getElementById('testSubtitle').textContent = 'Answer all 10 questions - ' + name;
+  showRegStep(2);
+  renderQuestion();
+}
 
 function flashField(id, msg) {
   const el = document.getElementById(id);
@@ -516,226 +461,763 @@ function flashField(id, msg) {
   alert(msg);
 }
 
-const classQuestions = {
-  '9': [
-    {q:'Which is irrational?',opts:['√4','√9','√2','√16'],ans:2,topic:'Real Numbers'},
-    {q:'Solve: 2x+5=13. x=?',opts:['3','4','5','6'],ans:1,topic:'Algebra'},
-    {q:'A={1,2,3} B={2,3,4}. A∩B=?',opts:['{1}','{4}','{2,3}','{1,2,3,4}'],ans:2,topic:'Set Language'},
-    {q:'Two angles 60° 70°, third=?',opts:['40°','50°','60°','70°'],ans:1,topic:'Geometry'},
-    {q:'sin(30°)=?',opts:['1','√3/2','1/2','1/√2'],ans:2,topic:'Trigonometry'},
-    {q:'Area of circle r=7cm (π=22/7):',opts:['44cm²','154cm²','49cm²','22cm²'],ans:1,topic:'Mensuration'},
-    {q:'Distance (0,0) to (3,4):',opts:['5','7','12','25'],ans:0,topic:'Coordinate Geometry'},
-    {q:'Mean of 5,10,15,20,25:',opts:['10','15','20','25'],ans:1,topic:'Statistics'},
-    {q:'Bag 3 red 2 blue. P(red)=?',opts:['2/5','3/5','1/5','3/2'],ans:1,topic:'Probability'},
-    {q:'Volume cube side 4cm:',opts:['16cm³','24cm³','48cm³','64cm³'],ans:3,topic:'Mensuration'}
-  ],
-  '10': [
-    {q:'HCF of 12 and 18:',opts:['2','3','6','9'],ans:2,topic:'Real Numbers'},
-    {q:'Roots of x²−5x+6=0:',opts:['2,3','1,6','−2,−3','2,−3'],ans:0,topic:'Algebra'},
-    {q:'f(x)=2x+1, f(3)=?',opts:['5','6','7','8'],ans:2,topic:'Relations & Functions'},
-    {q:'tan(45°)=?',opts:['0','1/√3','1','√3'],ans:2,topic:'Trigonometry'},
-    {q:'Slope (1,2)→(3,6):',opts:['1','2','3','4'],ans:1,topic:'Coordinate Geometry'},
-    {q:'3-4-5 right triangle hypotenuse:',opts:['3','4','5','6'],ans:2,topic:'Geometry'},
-    {q:'Tangents from external point:',opts:['0','1','2','3'],ans:2,topic:'Geometry'},
-    {q:'Volume sphere r=3:',opts:['28π','36π','48π','54π'],ans:1,topic:'Mensuration'},
-    {q:'Standard deviation measures:',opts:['Average','Spread','Frequency','Range'],ans:1,topic:'Statistics'},
-    {q:'P(A)=0.4 P(B)=0.5 P(A∩B)=0.2 → P(A∪B)=?',opts:['0.5','0.6','0.7','0.9'],ans:2,topic:'Probability'}
-  ],
-  '11': [
-    {q:'A has 5 elements, subsets=?',opts:['16','25','32','64'],ans:2,topic:'Sets'},
-    {q:'i²=?',opts:['1','−1','i','−i'],ans:1,topic:'Complex Numbers'},
-    {q:'lim(x→0) sin(x)/x=?',opts:['0','∞','1','−1'],ans:2,topic:'Limits'},
-    {q:'d/dx(x⁴)=?',opts:['x³','4x³','4x','3x³'],ans:1,topic:'Differentiation'},
-    {q:'⁵P₂=?',opts:['10','15','20','25'],ans:2,topic:'Permutations'},
-    {q:'⁵C₂=?',opts:['5','10','15','20'],ans:1,topic:'Combinations'},
-    {q:'sin²θ+cos²θ=?',opts:['0','1','2','tan²θ'],ans:1,topic:'Trigonometry'},
-    {q:'Slope of 3x−4y+5=0:',opts:['3/4','−3/4','4/3','−4/3'],ans:0,topic:'Lines'},
-    {q:'[[1,0],[0,1]] is called:',opts:['Zero','Identity','Scalar','Diagonal'],ans:1,topic:'Matrices'},
-    {q:'Mean of first 10 natural numbers:',opts:['4.5','5','5.5','6'],ans:2,topic:'Statistics'}
-  ],
-  '12': [
-    {q:'∫x²dx=?',opts:['x³','x³/3+C','2x','3x²'],ans:1,topic:'Integration'},
-    {q:'d/dx(eˣ)=?',opts:['xeˣ⁻¹','eˣ','eˣ⁻¹','0'],ans:1,topic:'Differentiation'},
-    {q:'|A| for [[2,1],[4,3]]:',opts:['2','6','8','10'],ans:0,topic:'Matrices'},
-    {q:'Order of y″+y′=x:',opts:['1','2','3','0'],ans:1,topic:'Diff. Equations'},
-    {q:'P(A|B) P(A∩B)=0.2 P(B)=0.4:',opts:['0.2','0.4','0.5','0.8'],ans:2,topic:'Probability'},
-    {q:'a×b=0, vectors are:',opts:['Perpendicular','Parallel','Equal','Opposite'],ans:1,topic:'Vectors'},
-    {q:'∫₀¹x dx=?',opts:['0','1/2','1','2'],ans:1,topic:'Definite Integrals'},
-    {q:'Inverse of f(x)=2x+3:',opts:['(x−3)/2','(x+3)/2','2x−3','(3−x)/2'],ans:0,topic:'Functions'},
-    {q:'Linear programming finds:',opts:['Average','Optimal','Exact','Random'],ans:1,topic:'Linear Programming'},
-    {q:'Binomial n=10 p=0.4 mean=?',opts:['2','4','6','8'],ans:1,topic:'Probability Distributions'}
-  ]
-};
-
-let assessAnswers = {}, currentQ = 0, activeQuestions = [], studentData = {};
-
-async function startAssessment() {
-  const name    = (document.getElementById('regName')?.value    || '').trim();
-  const cls     = (document.getElementById('regClass')?.value   || '').trim();
-  const subject = (document.getElementById('regSubject')?.value || '').trim();
-  const mobile  = (document.getElementById('regMobile')?.value  || '').trim();
-  const email   = (document.getElementById('regEmail')?.value   || '').trim();
-  const pass    = (document.getElementById('regPassword')?.value|| '').trim();
-  if (!name)                                 { flashField('regName',    'Please enter student name.'); return; }
-  if (!cls)                                  { flashField('regClass',   'Please select your class.'); return; }
-  if ((cls==='11'||cls==='12') && !subject)  { flashField('regSubject', 'Please choose Maths or Business Maths.'); return; }
-  if (mobile.replace(/\D/g,'').length < 10)  { flashField('regMobile',  'Enter valid 10-digit mobile.'); return; }
-  if (!email || !email.includes('@'))        { flashField('regEmail',   'Enter valid email address.'); return; }
-  if (pass.length < 6)                       { flashField('regPassword','Password must be at least 6 characters.'); return; }
-  try {
-    await API.registerStudent(name, cls, mobile, email, pass, subject || 'maths');
-  } catch (err) { alert(err.message || 'Registration failed. Please try again.'); return; }
-  studentData = { name, cls, class: cls, subject: subject || 'maths', mobile, email };
-  localStorage.setItem('ilearn_student', JSON.stringify(studentData));
-  activeQuestions = classQuestions[cls] || classQuestions['9'];
-  assessAnswers = {}; currentQ = 0;
-  document.getElementById('testTitle').textContent    = 'Class ' + cls + ' Diagnostic Test';
-  document.getElementById('testSubtitle').textContent = 'Answer all 10 questions — ' + name;
-  showRegStep(2); renderQuestion();
-}
-
 function renderQuestion() {
-  const q = activeQuestions[currentQ], total = activeQuestions.length;
+  const q = activeQuestions[currentQ];
+  const total = activeQuestions.length;
   const pct = Math.round(currentQ / total * 100);
-  document.getElementById('qProgress').textContent = 'Question ' + (currentQ+1) + ' of ' + total;
-  document.getElementById('qPct').textContent      = pct + '%';
+  document.getElementById('qProgress').textContent = 'Question ' + (currentQ + 1) + ' of ' + total;
+  document.getElementById('qPct').textContent = pct + '%';
   document.getElementById('qProgFill').style.width = pct + '%';
-  document.getElementById('prevBtn').style.display  = currentQ > 0 ? 'inline-block' : 'none';
-  document.getElementById('nextBtn').textContent    = currentQ === total-1 ? 'Submit' : 'Next →';
+  document.getElementById('prevBtn').style.display = currentQ > 0 ? 'inline-block' : 'none';
+  document.getElementById('nextBtn').textContent = currentQ === total - 1 ? 'Submit' : 'Next →';
   const sel = assessAnswers[currentQ];
-  document.getElementById('questionArea').innerHTML =
-    `<div style="background:var(--dark3);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
-      <div style="font-size:.7rem;color:var(--pink);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${q.topic}</div>
-      <div style="font-size:.94rem;line-height:1.6;margin-bottom:16px;">${currentQ+1}. ${q.q}</div>
+  document.getElementById('questionArea').innerHTML = `
+    <div style="background:var(--dark3);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
+      <div style="font-size:0.7rem;color:var(--pink);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">${q.topic}</div>
+      <div style="font-size:0.94rem;line-height:1.6;margin-bottom:16px;color:var(--text);">${currentQ + 1}. ${q.q}</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        ${q.opts.map((opt,i) => `
-          <div onclick="selectQ(${i})" style="display:flex;align-items:center;gap:12px;padding:10px 14px;
-            background:${sel===i?'rgba(255,45,120,.12)':'rgba(255,255,255,.02)'};
-            border:1px solid ${sel===i?'var(--pink)':'rgba(255,255,255,.08)'};
-            border-radius:10px;cursor:pointer;font-size:.88rem;transition:all .2s;">
-            <div style="width:16px;height:16px;border-radius:50%;
-              border:2px solid ${sel===i?'var(--pink)':'rgba(255,255,255,.25)'};
-              background:${sel===i?'var(--pink)':'transparent'};flex-shrink:0;"></div>${opt}
+        ${q.opts.map((opt, i) => `
+          <div onclick="selectQ(${i})" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${sel === i ? 'rgba(255,45,120,0.12)' : 'rgba(255,255,255,0.02)'};border:1px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.08)'};border-radius:10px;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${sel === i ? 'var(--pink)' : 'rgba(255,255,255,0.25)'};background:${sel === i ? 'var(--pink)' : 'transparent'};flex-shrink:0;transition:all 0.2s;"></div>
+            ${opt}
           </div>`).join('')}
-      </div></div>`;
+      </div>
+    </div>`;
 }
+
 function selectQ(idx) { assessAnswers[currentQ] = idx; renderQuestion(); }
 function nextQ() {
-  if (assessAnswers[currentQ] === undefined) { alert('Please select an answer.'); return; }
-  if (currentQ === activeQuestions.length - 1) showResult(); else { currentQ++; renderQuestion(); }
+  if (assessAnswers[currentQ] === undefined) { alert('Please select an answer before continuing.'); return; }
+  if (currentQ === activeQuestions.length - 1) { showResult(); } else { currentQ++; renderQuestion(); }
 }
 function prevQ() { if (currentQ > 0) { currentQ--; renderQuestion(); } }
 
 function showResult() {
-  const total   = activeQuestions.length;
-  const correct = activeQuestions.filter((q,i) => assessAnswers[i] === q.ans).length;
-  const pct     = Math.round(correct / total * 100);
+  const total = activeQuestions.length;
+  const correct = activeQuestions.filter((q, i) => assessAnswers[i] === q.ans).length;
+  const pct = Math.round(correct / total * 100);
   const topicScores = {};
-  activeQuestions.forEach((q,i) => {
-    if (!topicScores[q.topic]) topicScores[q.topic] = {c:0,t:0};
+  activeQuestions.forEach((q, i) => {
+    if (!topicScores[q.topic]) topicScores[q.topic] = { c: 0, t: 0 };
     topicScores[q.topic].t++;
     if (assessAnswers[i] === q.ans) topicScores[q.topic].c++;
   });
-  const weak   = Object.entries(topicScores).filter(([,s]) => s.c/s.t<0.6).map(([t])=>t);
-  const strong = Object.entries(topicScores).filter(([,s]) => s.c/s.t>=0.8).map(([t])=>t);
-  const col    = pct>=70?'#00E5A0':pct>=50?'#FFD166':'#FF2D78';
-  const grade  = pct>=80?'Excellent 🏆':pct>=60?'Good 👍':pct>=40?'Average 💪':'Needs Work 📚';
-  document.getElementById('resultScore').innerHTML = '<span style="color:'+col+'">'+pct+'%</span>';
+  const weakTopics = Object.entries(topicScores).filter(([, s]) => s.c / s.t < 0.6).map(([t]) => t);
+  const strongTopics = Object.entries(topicScores).filter(([, s]) => s.c / s.t >= 0.8).map(([t]) => t);
+  const scoreCol = pct >= 70 ? '#00E5A0' : pct >= 50 ? '#FFD166' : '#FF2D78';
+  const grade = pct >= 80 ? 'Excellent 🏆' : pct >= 60 ? 'Good 👍' : pct >= 40 ? 'Average 💪' : 'Needs Work 📚';
+
+  document.getElementById('resultScore').innerHTML = '<span style="color:' + scoreCol + '">' + pct + '%</span>';
   document.getElementById('resultGrade').textContent = grade;
-  document.getElementById('resultNote').textContent  = correct+' of '+total+' correct';
-  document.getElementById('resultGrid').innerHTML    =
-    '<div class="rbox good"><div class="rbox-title good">✓ Strong Topics</div>'+
-    (strong.length?strong.map(t=>'<div class="rbox-item">• '+t+'</div>').join(''):'<div class="rbox-item">Keep practising!</div>')+
-    '</div><div class="rbox weak"><div class="rbox-title weak">⚠ Needs Focus</div>'+
-    (weak.length?weak.map(t=>'<div class="rbox-item">• '+t+'</div>').join(''):'<div class="rbox-item">Great work!</div>')+
-    '</div>';
-  document.getElementById('topicBars').innerHTML = Object.entries(topicScores).map(([topic,s])=>{
-    const p=Math.round(s.c/s.t*100),c=p>=70?'#00E5A0':p>=50?'#FFD166':'#FF2D78';
-    return '<div class="t-bar-wrap"><div class="t-bar-top"><span>'+topic+'</span><span style="color:'+c+'">'+p+'%</span></div><div class="t-bar"><div class="t-bar-fill" style="width:'+p+'%;background:'+c+'"></div></div></div>';
+  document.getElementById('resultNote').textContent = correct + ' of ' + total + ' correct • Class ' + studentData.cls + ' Diagnostic';
+  document.getElementById('resultGrid').innerHTML =
+    '<div class="rbox good"><div class="rbox-title good">✓ Strong Topics</div>' +
+    (strongTopics.length ? strongTopics.map(t => '<div class="rbox-item">• ' + t + '</div>').join('') : '<div class="rbox-item">Keep practicing!</div>') + '</div>' +
+    '<div class="rbox weak"><div class="rbox-title weak">⚠ Needs Focus</div>' +
+    (weakTopics.length ? weakTopics.map(t => '<div class="rbox-item">• ' + t + '</div>').join('') : '<div class="rbox-item">Great performance!</div>') + '</div>';
+  document.getElementById('topicBars').innerHTML = Object.entries(topicScores).map(([topic, s]) => {
+    const p = Math.round(s.c / s.t * 100);
+    const col = p >= 70 ? '#00E5A0' : p >= 50 ? '#FFD166' : '#FF2D78';
+    return '<div class="t-bar-wrap"><div class="t-bar-top"><span>' + topic + '</span><span style="color:' + col + '">' + p + '%</span></div><div class="t-bar"><div class="t-bar-fill" style="width:' + p + '%;background:' + col + '"></div></div></div>';
   }).join('');
-  document.getElementById('aiTip').innerHTML = '🤖 <strong>AI Tip:</strong> Focus on <strong>'+(weak.length?weak.slice(0,2).join(' and '):'all topics equally')+'</strong>.';
-  showResult_submit(correct, total, topicScores, weak, strong);
+  document.getElementById('aiTip').innerHTML = '🤖 <strong>AI Recommendation:</strong> Focus extra time on <strong>' + (weakTopics.length ? weakTopics.slice(0, 2).join(' and ') : 'all topics equally') + '</strong>. Use the AI Timetable Generator to build your personalised study plan.';
   showRegStep(3);
 }
 
-function showResult_submit(correct, total, topicScores, weak, strong) {
-  const topicPcts = {};
-  Object.entries(topicScores).forEach(([t,s]) => { topicPcts[t] = Math.round(s.c/s.t*100); });
+// ── AI CHATBOT ────────────────────────────────────────────────────────────────
+const chatHistory = [];
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const chatBody = document.getElementById('chatBody');
+  if (!input || !chatBody) return;
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  chatHistory.push({ role: 'user', content: q });
+  chatBody.innerHTML += `<div class="msg user"><div class="msg-ava" style="background:rgba(255,45,120,0.2)">👤</div><div class="msg-bubble">${esc(q)}</div></div>`;
+  const tid = 'typing_' + Date.now();
+  chatBody.innerHTML += `<div class="msg bot" id="${tid}"><div class="msg-ava">🤖</div><div class="typing"><span></span><span></span><span></span></div></div>`;
+  chatBody.scrollTop = chatBody.scrollHeight;
   try {
-    API.submitAssessment(
-      Object.values(assessAnswers),
-      activeQuestions,
-      studentData.cls || studentData.class
-    ).catch(() => {});
-  } catch (_) {}
+    const data = await API.sendChatMessage(q);
+    const reply = data.reply || 'Sorry, please try again!';
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (data.sessionKey) localStorage.setItem('ilearn_chat_session', data.sessionKey);
+    document.getElementById(tid)?.remove();
+    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(reply)}</div></div>`;
+  } catch (e) {
+    document.getElementById(tid)?.remove();
+    chatBody.innerHTML += `<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(e.message || 'Connection error. Please try again.')}</div></div>`;
+  }
+  chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-// ── CHATBOT ───────────────────────────────────────────────────────────────────
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>');}
-async function sendChat() {
-  const input=document.getElementById('chatInput'),chatBody=document.getElementById('chatBody');
-  if(!input||!chatBody) return;
-  const q=input.value.trim(); if(!q) return;
-  input.value='';
-  chatBody.innerHTML+=`<div class="msg user"><div class="msg-ava">👤</div><div class="msg-bubble">${esc(q)}</div></div>`;
-  const tid='typing_'+Date.now();
-  chatBody.innerHTML+=`<div class="msg bot" id="${tid}"><div class="msg-ava">🤖</div><div class="typing"><span></span><span></span><span></span></div></div>`;
-  chatBody.scrollTop=chatBody.scrollHeight;
-  try {
-    const data=await API.sendChatMessage(q);
-    const reply=data.reply||'Sorry, please try again!';
-    if(data.sessionKey) localStorage.setItem('ilearn_chat_session',data.sessionKey);
-    document.getElementById(tid)?.remove();
-    chatBody.innerHTML+=`<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(reply)}</div></div>`;
-  } catch(e) {
-    document.getElementById(tid)?.remove();
-    chatBody.innerHTML+=`<div class="msg bot"><div class="msg-ava">🤖</div><div class="msg-bubble">${fmt(e.message||'Connection error.')}</div></div>`;
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function fmt(t) {
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+}
+
+document.addEventListener('click', (event) => {
+  const menu = document.getElementById('profileMenu');
+  const panel = document.getElementById('profilePanel');
+  if (!menu || !panel) return;
+  if (!menu.contains(event.target)) panel.classList.remove('open');
+});
+
+function getStoredProfileState(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+}
+
+function getCurrentRole() {
+  if (hasActiveTeacherSession()) return 'teacher';
+  if (hasActiveStudentSession()) return 'student';
+  if (hasActiveParentSession()) return 'parent';
+  return null;
+}
+
+function getProfileData() {
+  const role = getCurrentRole();
+  if (!role) return null;
+  if (role === 'student') {
+    const data = getStoredProfileState('ilearn_student_profile');
+    const student = data.student || getStoredProfileState('ilearn_student');
+    const present = Number(data.attendance?.present || 0);
+    const total = Number(data.totalAttendance?.total || 0);
+    const percentage = total ? Math.round((present / total) * 1000) / 10 : 0;
+    return {
+      role, title: student.name || 'Student', subtitle: 'Student',
+      items: [
+        { label: 'Role', value: 'Student' },
+        { label: 'Class', value: student.class ? 'Class ' + student.class : 'Not available' },
+        { label: 'Email', value: student.email || 'Not available' },
+        { label: 'Attendance', value: total ? `${percentage}% (${present}/${total})` : 'No attendance yet' }
+      ]
+    };
   }
-  chatBody.scrollTop=chatBody.scrollHeight;
+  if (role === 'parent') {
+    const data = getStoredProfileState('ilearn_parent_profile');
+    const student = data.student || getStoredProfileState('ilearn_parent_student');
+    const monthAtt = data.report?.attendanceSummary?.month || data.report?.attendance || data.attendance || {};
+    const present = Number(monthAtt.present || 0);
+    const total = Number(monthAtt.total || 0);
+    const percentage = total ? Math.round((present / total) * 1000) / 10 : 0;
+    return {
+      role, title: 'Parent', subtitle: student.name ? 'Parent of ' + student.name : 'Parent',
+      items: [
+        { label: 'Role', value: 'Parent' },
+        { label: 'Student', value: student.name || 'Linked student' },
+        { label: 'Class', value: student.class ? 'Class ' + student.class : 'Not available' },
+        { label: 'Attendance', value: total ? `${percentage}% (${present}/${total})` : 'No attendance yet' }
+      ]
+    };
+  }
+  const teacher = getStoredProfileState('ilearn_teacher');
+  return {
+    role, title: teacher.name || 'Teacher', subtitle: 'Teacher',
+    items: [
+      { label: 'Role', value: 'Teacher' },
+      { label: 'Name', value: teacher.name || 'Master Maths Staff' },
+      { label: 'Email', value: teacher.email || 'Not available' },
+      { label: 'Access', value: 'Teacher Dashboard' }
+    ]
+  };
+}
+
+function renderNavProfile() {
+  const profileMenu = document.getElementById('profileMenu');
+  const profilePanel = document.getElementById('profilePanel');
+  const loginBtn = document.getElementById('navLoginBtn');
+  const registerBtn = document.getElementById('navRegisterBtn');
+  const profile = getProfileData();
+  if (!profileMenu || !profilePanel || !loginBtn || !registerBtn) return;
+  if (!profile) {
+    profileMenu.style.display = 'none';
+    loginBtn.style.display = '';
+    registerBtn.style.display = '';
+    profilePanel.classList.remove('open');
+    return;
+  }
+  loginBtn.style.display = 'none';
+  registerBtn.style.display = 'none';
+  profileMenu.style.display = 'block';
+  const logoutFn = profile.role === 'student' ? 'API.logoutStudent()' : (profile.role === 'parent' ? 'API.logoutParent()' : 'API.logoutTeacher()');
+  profilePanel.innerHTML = `
+    <h4>${profile.title}</h4>
+    <p>${profile.subtitle}</p>
+    ${profile.items.map((item) => `<div class="profile-row"><div class="profile-label">${item.label}</div><div class="profile-value">${item.value}</div></div>`).join('')}
+    <button class="profile-logout" onclick="${logoutFn}">Logout</button>
+  `;
+}
+
+async function loginTeacher() {
+  const email = (document.getElementById('lt-email')?.value || '').trim();
+  const password = (document.getElementById('lt-password')?.value || '').trim();
+  clearLoginError();
+  if (!email || !password) { showLoginError('Please enter the teacher email and password.'); return; }
+  try {
+    const data = await API.loginTeacher(email, password);
+    closeLoginModal();
+    localStorage.setItem('ilearn_teacher', JSON.stringify(data.teacher || {}));
+    redirectToTeacherDashboard();
+  } catch (err) {
+    showLoginError(err.message || 'Teacher login failed');
+  }
+}
+
+// ── PARENT DASHBOARD REFRESH ──────────────────────────────────────────────────
+async function refreshParentDashboard() {
+  if (!hasActiveParentSession()) return;
+  try {
+    const profile = await API.getParentReport();
+    localStorage.setItem('ilearn_parent_profile', JSON.stringify(profile));
+    localStorage.setItem('ilearn_parent_student', JSON.stringify(profile.student || {}));
+
+    const report = profile.report || profile;
+    const student = profile.student || {};
+
+    // Inject all parent tab data
+    if (typeof injectParentTabData === 'function') {
+      injectParentTabData(report, student);
+    }
+
+    updateDashboardAttendanceCards();
+    renderNavProfile();
+  } catch (err) {
+    console.warn('Parent dashboard refresh failed:', err.message || err);
+  }
+}
+
+async function refreshRoleData() {
+  const role = getCurrentRole();
+  try {
+    if (role === 'student') {
+      const profile = await API.getStudentProfile();
+      localStorage.setItem('ilearn_student_profile', JSON.stringify(profile));
+      try {
+        const timetable = await API.getLatestTimetable();
+        localStorage.setItem('ilearn_student_timetable', JSON.stringify(timetable));
+      } catch (innerErr) {
+        console.warn('Timetable refresh skipped:', innerErr.message || innerErr);
+      }
+    } else if (role === 'parent') {
+      await refreshParentDashboard();
+      return; // refreshParentDashboard already calls updateDashboardAttendanceCards
+    } else if (role === 'teacher') {
+      const teacher = JSON.parse(localStorage.getItem('ilearn_teacher') || '{}');
+      localStorage.setItem('ilearn_teacher', JSON.stringify(teacher));
+    }
+  } catch (err) {
+    console.warn('Profile refresh skipped:', err.message || err);
+  }
+  updateDashboardAttendanceCards();
+  renderTodayTimetableReminder();
+}
+
+// ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
+function setElementText(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.textContent = value;
+}
+function setElementWidth(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.style.width = value;
+}
+function formatUpdatedLabel(dateObj) {
+  const date = dateObj || new Date();
+  return 'Last updated: ' + date.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function setUpdatedLabel(id, dateObj) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.textContent = formatUpdatedLabel(dateObj);
+}
+function getTodayTimetableDayKey() {
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
+}
+function getTimetableSlotClass(type) {
+  const value = String(type || '').toLowerCase();
+  if (value === 'study') return 'var(--pink)';
+  if (value === 'practice') return 'var(--blue)';
+  if (value === 'revision') return 'var(--green)';
+  if (value === 'doubt') return 'var(--purple)';
+  if (value === 'test') return '#FFD166';
+  return 'var(--blue)';
+}
+function renderTodayTimetableReminder() {
+  const wrap = document.getElementById('studentTodayTimetable');
+  if (!wrap) return;
+  const timetableState = getStoredProfileState('ilearn_student_timetable');
+  const schedule = timetableState.timetable?.schedule || timetableState.schedule || {};
+  const weeklyPlan = schedule.weeklyPlan || schedule.week || {};
+  const todayKey = getTodayTimetableDayKey();
+  const todaySlots = Array.isArray(weeklyPlan[todayKey]) ? weeklyPlan[todayKey] : [];
+  if (!todaySlots.length) {
+    wrap.innerHTML = '<div class="tt-slot"><div class="tt-dot" style="background:var(--blue)"></div><div class="tt-time">' + todayKey + '</div><div>No timetable slots planned for today yet.</div></div>';
+    return;
+  }
+  wrap.innerHTML = todaySlots.slice(0, 4).map((slot) => {
+    const time = slot.time || 'Study Slot';
+    const topic = slot.topic || 'Maths Practice';
+    const type = slot.type ? ' - ' + slot.type.charAt(0).toUpperCase() + slot.type.slice(1) : '';
+    return '<div class="tt-slot"><div class="tt-dot" style="background:' + getTimetableSlotClass(slot.type) + '"></div><div class="tt-time">' + time + '</div><div>' + topic + type + '</div></div>';
+  }).join('');
+}
+
+function updateDashboardAttendanceCards() {
+  const now = new Date();
+  const role = getCurrentRole();
+
+  const studentProfile = getStoredProfileState('ilearn_student_profile');
+  const studentStored = getStoredProfileState('ilearn_student');
+  const parentProfile = getStoredProfileState('ilearn_parent_profile');
+  const parentStored = getStoredProfileState('ilearn_parent_student');
+  const teacherStored = getStoredProfileState('ilearn_teacher');
+
+  const welcomeName = role === 'student'
+    ? (studentProfile.student?.name || studentStored.name || 'Student')
+    : (role === 'parent'
+      ? (parentProfile.student?.name || parentStored.name || 'Parent')
+      : (role === 'teacher' ? (teacherStored.name || 'Teacher') : 'Learner'));
+
+  setElementText('dashboardWelcomeName', welcomeName || 'Learner');
+  setElementText('dashboardWelcomeRole', role ? `Signed in as ${role}` : 'Sign in to view your dashboard');
+  setUpdatedLabel('dashboardWelcomeUpdated', now);
+
+  // ── Student attendance ──
+  const studentMonth = studentProfile.attendanceSummary?.month || null;
+  const studentOverall = studentProfile.attendanceSummary?.overall || null;
+  if (studentMonth || studentOverall) {
+    setElementText('studentAttendanceMonth', `${studentMonth?.present || 0} / ${studentMonth?.total || 0} days`);
+    setElementText('studentAttendanceOverall', `${studentOverall?.percentage || 0}%`);
+    setElementText('studentAttendanceProgressLabel', `${studentOverall?.percentage || 0}%`);
+    setElementWidth('studentAttendanceProgress', `${Math.max(0, Math.min(100, Number(studentOverall?.percentage || 0)))}%`);
+    setElementText('studentAttendanceHint', studentOverall?.total
+      ? `Overall attendance: ${studentOverall.present}/${studentOverall.total} classes marked.`
+      : 'Attendance will appear here once your teacher starts marking it.');
+  }
+  setUpdatedLabel('studentAttendanceUpdated', now);
+
+  const streakValue = Number(studentProfile.mcqStreak || 0);
+  setElementText('studentStreakValue', streakValue + ' day' + (streakValue === 1 ? '' : 's'));
+  setUpdatedLabel('studentStreakUpdated', now);
+
+  // ── Parent attendance (existing HTML cards) ──
+  const report = parentProfile.report || parentProfile;
+  const parentStudent = parentProfile.student || parentStored;
+  const parentMonth = report?.attendanceSummary?.month || report?.attendance || null;
+  const parentOverall = report?.attendanceSummary?.overall || parentMonth;
+
+  if (parentMonth !== null || parentStudent?.name) {
+    setElementText('parentAttendanceMonth', `${parentMonth?.present || 0} / ${parentMonth?.total || 0} days`);
+    setElementText('parentAttendanceOverall', `${parentOverall?.percentage || 0}%`);
+    setElementText('parentAttendanceStudent', parentStudent?.name || 'Linked student');
+    setElementText('parentAttendanceProgressLabel', `${parentOverall?.percentage || 0}%`);
+    setElementWidth('parentAttendanceProgress', `${Math.max(0, Math.min(100, Number(parentOverall?.percentage || 0)))}%`);
+    setUpdatedLabel('parentAttendanceUpdated', now);
+  }
+
+  // ── Parent fee card (existing HTML) ──
+  const feeSummary = report?.feeSummary || null;
+  if (feeSummary || parentStudent?.class) {
+    setElementText('parentFeeBatch', parentStudent?.class ? `Class ${parentStudent.class}` : 'Linked batch');
+    const pendingAmt = Number(feeSummary?.pending || 0);
+    setElementText('parentFeeStatus', feeSummary ? (pendingAmt > 0 ? `Rs ${pendingAmt} pending` : 'Paid up') : 'No entries yet');
+    setElementText('parentFeePaid', `Rs ${feeSummary?.totalPaid || 0}`);
+    setElementText('parentFeePending', `Rs ${feeSummary?.pending || 0}`);
+    setUpdatedLabel('parentFeeUpdated', now);
+  }
+
+  // ── Render all extra parent widgets ──
+  if (role === 'parent' && (parentMonth || parentStudent?.name)) {
+    if (typeof injectParentTabData === 'function') {
+      injectParentTabData(report, parentStudent);
+    }
+  }
+
+  renderTodayTimetableReminder();
+}
+
+function updateHomeForSession() {
+  const role = getCurrentRole();
+  const studentOnly = document.querySelectorAll('.role-student-only');
+  const parentOnly = document.querySelectorAll('.role-parent-only');
+  const teacherOnly = document.querySelectorAll('.role-teacher-only');
+  const studentTab = document.getElementById('studentDashTab');
+  const parentTab = document.getElementById('parentDashTab');
+  const teacherTab = document.getElementById('teacherDashTab');
+  const studentContent = document.getElementById('tab-student');
+  const parentContent = document.getElementById('tab-parent');
+  const teacherContent = document.getElementById('tab-teacher');
+  const teacherHiddenSections = [document.getElementById('assessment'), document.getElementById('ai-features')];
+
+  studentOnly.forEach((el) => { el.style.display = !role || role === 'student' ? '' : 'none'; });
+  parentOnly.forEach((el) => { el.style.display = !role || role === 'parent' ? '' : 'none'; });
+  teacherOnly.forEach((el) => { el.style.display = role === 'teacher' ? '' : 'none'; });
+  teacherHiddenSections.forEach((section) => { if (section) section.style.display = role === 'teacher' ? 'none' : ''; });
+
+  if (role === 'student') {
+    studentTab?.classList.add('active'); parentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
+    studentContent?.classList.add('active'); parentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
+  } else if (role === 'parent') {
+    parentTab?.classList.add('active'); studentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
+    parentContent?.classList.add('active'); studentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
+    // Ensure parent extra widgets exist
+    if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
+  } else if (role === 'teacher') {
+    teacherTab?.classList.add('active'); studentTab?.classList.remove('active'); parentTab?.classList.remove('active');
+    if (teacherContent) { teacherContent.classList.add('active'); teacherContent.style.display = 'block'; }
+    studentContent?.classList.remove('active'); parentContent?.classList.remove('active');
+  }
+
+  renderNavProfile();
+  updateAuthRequiredState();
+  updateDashboardAttendanceCards();
+}
+
+// ── TEACHER FUNCTIONS ─────────────────────────────────────────────────────────
+function setDefaultTeacherDate() {
+  const input = document.getElementById('teacherAttendanceDate');
+  if (!input || input.value) return;
+  const today = new Date();
+  const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+  input.value = localDate;
+}
+
+function renderTeacherSheetInfo(sheetPath) {
+  const info = document.getElementById('teacherSheetInfo');
+  if (!info) return;
+  info.textContent = sheetPath ? 'Attendance sheet: ' + sheetPath : 'Attendance sheet will be generated after saving.';
+}
+
+let teacherStudentCache = [];
+
+function renderTeacherMcqCards(count = 10) {
+  const wrap = document.getElementById('teacherMcqCards');
+  if (!wrap) return;
+  const safeCount = Math.max(1, Math.min(20, Number(count) || 10));
+  const countInput = document.getElementById('teacherMcqCount');
+  if (countInput) countInput.value = safeCount;
+  wrap.innerHTML = Array.from({ length: safeCount }, (_, index) => `
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px;">
+      <div style="font-size:0.78rem;color:var(--blue);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Question ${index + 1}</div>
+      <div class="form-group" style="margin:0 0 10px 0;"><label>Question Text</label><textarea id="teacherMcqQuestion${index + 1}" rows="3" placeholder="Enter question ${index + 1}"></textarea></div>
+      <div class="form-group" style="margin:0 0 10px 0;"><label>Question Image URL / Path</label><input type="text" id="teacherMcqQuestionImage${index + 1}" placeholder="Paste image URL or path (optional)" /></div>
+      ${[1, 2, 3, 4].map((optionNumber) => `
+        <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;">
+          <div class="form-group" style="margin:0;"><label>Option ${optionNumber} Text</label><input type="text" id="teacherMcq${index + 1}Option${optionNumber}" placeholder="Option ${optionNumber} text" /></div>
+          <div class="form-group" style="margin:0;"><label>Option ${optionNumber} Image URL / Path</label><input type="text" id="teacherMcq${index + 1}Option${optionNumber}Image" placeholder="Paste option ${optionNumber} image URL or path (optional)" /></div>
+        </div>
+      `).join('')}
+      <div class="form-group" style="margin:0;"><label>Correct Option</label>
+        <select id="teacherMcq${index + 1}Correct"><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select>
+      </div>
+    </div>
+  `).join('');
+}
+
+function regenerateTeacherMcqCards() {
+  const count = document.getElementById('teacherMcqCount')?.value || 10;
+  renderTeacherMcqCards(count);
+}
+
+function showTeacherMcqMessage(message, isError) {
+  const box = document.getElementById('teacherMcqMessage');
+  if (!box) return;
+  box.style.display = 'block';
+  box.style.background = isError ? 'rgba(255,45,120,0.12)' : 'rgba(0,229,160,0.12)';
+  box.style.borderColor = isError ? 'rgba(255,45,120,0.25)' : 'rgba(0,229,160,0.25)';
+  box.textContent = message;
+}
+
+function showTeacherPanelMessage(id, message, isError) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  box.style.display = 'block';
+  box.style.background = isError ? 'rgba(255,45,120,0.12)' : 'rgba(77,158,255,0.12)';
+  box.style.borderColor = isError ? 'rgba(255,45,120,0.25)' : 'rgba(77,158,255,0.25)';
+  box.textContent = message;
+}
+
+function renderTeacherMcqList(mcqs) {
+  const body = document.getElementById('teacherMcqList');
+  if (!body) return;
+  if (!mcqs.length) {
+    body.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No daily MCQ batches posted yet.</div>';
+    return;
+  }
+  body.innerHTML = mcqs.map((mcq, index) => {
+    const total = Number(mcq.submission_count || 0);
+    const correct = Number(mcq.correct_count || 0);
+    const accuracy = total ? Math.round((correct / total) * 100) : 0;
+    const studentReports = Array.isArray(mcq.student_reports) ? mcq.student_reports : [];
+    const attempted = studentReports.filter((s) => s.attemptedCount > 0);
+    const notAttempted = studentReports.filter((s) => s.attemptedCount === 0);
+    const attemptedHtml = attempted.length
+      ? attempted.map((s) => `<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);"><div><div style="font-weight:700;">${s.name}</div><div style="font-size:0.8rem;color:var(--muted);">Class ${s.class} - ${s.email || 'No email'}</div></div><div style="text-align:right;"><div style="font-weight:700;color:var(--green);">${s.score}</div><div style="font-size:0.8rem;color:var(--muted);">Attempted ${s.attemptedCount}, Wrong ${s.wrongCount}</div></div></div>`).join('')
+      : '<div style="color:var(--muted);font-size:0.84rem;">No students have attempted this batch yet.</div>';
+    const notAttemptedHtml = notAttempted.length
+      ? `<div style="margin-top:12px;color:var(--muted);font-size:0.82rem;line-height:1.7;"><strong style="color:var(--yellow);">Not attempted:</strong> ${notAttempted.map((s) => `${s.name} (Class ${s.class})`).join(', ')}</div>`
+      : '<div style="margin-top:12px;color:var(--green);font-size:0.82rem;">All assigned students have attempted this batch.</div>';
+    return `
+      <div style="padding:${index ? '16px 0 0' : '0'};margin-top:${index ? '16px' : '0'};border-top:${index ? '1px solid rgba(255,255,255,0.06)' : 'none'};">
+        <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.78rem;color:var(--blue);font-weight:700;margin-bottom:6px;">${mcq.batch_title || mcq.title || 'Daily MCQ Batch'} - Class ${mcq.class_scope || 'all'}</div>
+            <div style="font-weight:700;line-height:1.5;">${mcq.question_count || 0} questions - ends ${mcq.available_until || 'in 24 hours'}</div>
+          </div>
+          <div style="min-width:220px;text-align:right;">
+            <div style="font-weight:700;color:var(--green);">${accuracy}% accuracy</div>
+            <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Attempted: ${mcq.attempted_students || 0} | Not attempted: ${mcq.not_attempted_students || 0}</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:16px;border-radius:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:0.76rem;color:var(--blue);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Student Scores</div>
+          ${attemptedHtml}${notAttemptedHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadTeacherMcqs() {
+  if (!hasActiveTeacherSession()) return;
+  try {
+    const data = await API.getTeacherMcqs();
+    renderTeacherMcqList(data.mcqs || []);
+  } catch (err) {
+    showTeacherMcqMessage(err.message || 'Could not load daily MCQs.', true);
+  }
+}
+
+async function createTeacherMcq() {
+  if (!hasActiveTeacherSession()) { alert('Please login as teacher first.'); return; }
+  const title = (document.getElementById('teacherMcqTitle')?.value || '').trim() || 'Daily MCQ Batch';
+  const classScope = (document.getElementById('teacherMcqClass')?.value || 'all').trim();
+  const questionCount = Math.max(1, Math.min(20, Number(document.getElementById('teacherMcqCount')?.value || 10)));
+  const questions = Array.from({ length: questionCount }, (_, index) => {
+    const question = (document.getElementById(`teacherMcqQuestion${index + 1}`)?.value || '').trim();
+    const imageUrl = (document.getElementById(`teacherMcqQuestionImage${index + 1}`)?.value || '').trim();
+    const options = [1, 2, 3, 4].map((optionIndex) => (document.getElementById(`teacherMcq${index + 1}Option${optionIndex}`)?.value || '').trim());
+    const correctIndex = Number(document.getElementById(`teacherMcq${index + 1}Correct`)?.value || 0);
+    return { question, imageUrl, options, correctIndex };
+  }).filter((item) => item.question || item.imageUrl || item.options.some((option) => option));
+  if (!questions.length) { showTeacherMcqMessage('Add at least one MCQ card before posting.', true); return; }
+  if (questions.some((item) => (!item.question && !item.imageUrl) || item.options.some((option) => !option))) {
+    showTeacherMcqMessage('Each filled MCQ card must have question text or image, plus 4 options.', true); return;
+  }
+  try {
+    await API.createTeacherMcq({ title, classScope, questions });
+    const titleNode = document.getElementById('teacherMcqTitle');
+    if (titleNode) titleNode.value = '';
+    showTeacherMcqMessage(questions.length + ' question(s) posted successfully.', false);
+    renderTeacherMcqCards(questionCount);
+    await loadTeacherMcqs();
+  } catch (err) {
+    showTeacherMcqMessage(err.message || 'Could not post MCQ batch.', true);
+  }
+}
+
+function renderTeacherPaperList(papers) {
+  const wrap = document.getElementById('teacherPaperList');
+  if (!wrap) return;
+  if (!papers.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>'; return; }
+  wrap.innerHTML = papers.map((paper, index) => `
+    <div style="padding:${index ? '16px 0 0' : '0'};margin-top:${index ? '16px' : '0'};border-top:${index ? '1px solid rgba(255,255,255,0.06)' : 'none'};display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:700;">${paper.title}</div>
+        <div style="color:var(--muted);font-size:0.84rem;margin-top:4px;">Class ${paper.class_scope || 'all'} - ${paper.resource_type || 'document'} - ${paper.posted_at || ''}</div>
+      </div>
+      <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a>
+    </div>
+  `).join('');
+}
+
+async function loadTeacherQuestionPapers() {
+  if (!hasActiveTeacherSession()) return;
+  try {
+    const data = await API.getTeacherQuestionPapers();
+    renderTeacherPaperList(data.papers || []);
+  } catch (err) {
+    showTeacherPanelMessage('teacherPaperMessage', err.message || 'Could not load question papers.', true);
+  }
+}
+
+async function createTeacherQuestionPaper() {
+  const title = (document.getElementById('teacherPaperTitle')?.value || '').trim();
+  const classScope = (document.getElementById('teacherPaperClass')?.value || 'all').trim();
+  const resourceType = (document.getElementById('teacherPaperType')?.value || 'pdf').trim();
+  const resourceUrl = (document.getElementById('teacherPaperUrl')?.value || '').trim();
+  if (!title || !resourceUrl) { showTeacherPanelMessage('teacherPaperMessage', 'Please enter a title and the document URL/path.', true); return; }
+  try {
+    await API.createTeacherQuestionPaper({ title, classScope, resourceType, resourceUrl });
+    ['teacherPaperTitle', 'teacherPaperUrl'].forEach((id) => { const node = document.getElementById(id); if (node) node.value = ''; });
+    showTeacherPanelMessage('teacherPaperMessage', 'Question paper added successfully.', false);
+    await loadTeacherQuestionPapers();
+  } catch (err) {
+    showTeacherPanelMessage('teacherPaperMessage', err.message || 'Could not add question paper.', true);
+  }
+}
+
+function renderTeacherWeeklyTestTable(students) {
+  const body = document.getElementById('teacherWeeklyTestBody');
+  if (!body) return;
+  if (!students.length) { body.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--muted);">No students available.</td></tr>'; return; }
+  body.innerHTML = students.map((student) => `
+    <tr data-student-id="${student.id}">
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.name}</td>
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Class ${student.class}</td>
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="number" min="0" id="weekly-marks-${student.id}" placeholder="Marks" style="width:120px;" /></td>
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="text" id="weekly-note-${student.id}" placeholder="Optional note" style="width:100%;" /></td>
+      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.latestWeeklyTest ? `${student.latestWeeklyTest.title} - ${student.latestWeeklyTest.marks_obtained}/${student.latestWeeklyTest.total_marks}` : 'No entry yet'}</td>
+    </tr>
+  `).join('');
+}
+
+async function saveTeacherWeeklyTests() {
+  const title = (document.getElementById('teacherWeeklyTestTitle')?.value || '').trim();
+  const testDate = document.getElementById('teacherWeeklyTestDate')?.value || '';
+  const totalMarks = Number(document.getElementById('teacherWeeklyTestTotal')?.value || 100);
+  if (!title || !testDate) { showTeacherPanelMessage('teacherWeeklyTestMessage', 'Please enter the weekly test title and date.', true); return; }
+  const entries = teacherStudentCache.map((student) => ({
+    studentId: student.id,
+    marksObtained: document.getElementById('weekly-marks-' + student.id)?.value || '',
+    notes: document.getElementById('weekly-note-' + student.id)?.value || ''
+  }));
+  try {
+    await API.saveTeacherWeeklyTests({ title, testDate, totalMarks, entries });
+    showTeacherPanelMessage('teacherWeeklyTestMessage', 'Weekly test marks saved successfully.', false);
+    await loadTeacherAttendance();
+  } catch (err) {
+    showTeacherPanelMessage('teacherWeeklyTestMessage', err.message || 'Could not save weekly test marks.', true);
+  }
+}
+
+function renderTeacherFeeTable(students) {
+  const body = document.getElementById('teacherFeeBody');
+  if (!body) return;
+  if (!students.length) { body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students available.</td></tr>'; return; }
+  body.innerHTML = students.map((student) => {
+    const fee = student.feeSummary || {};
+    return `
+      <tr data-student-id="${student.id}">
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.name}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Class ${student.class}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Rs ${fee.totalDue || 0}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Rs ${fee.totalPaid || 0}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);color:${Number(fee.pending || 0) > 0 ? 'var(--pink)' : 'var(--green)'};">Rs ${fee.pending || 0}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);"><input type="number" min="0" id="fee-paid-${student.id}" placeholder="Amount paid" style="width:140px;" /></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function saveTeacherFees() {
+  const paidOn = document.getElementById('teacherFeeDate')?.value || '';
+  if (!paidOn) { showTeacherPanelMessage('teacherFeeMessage', 'Please choose the payment date.', true); return; }
+  const entries = teacherStudentCache.map((student) => ({
+    studentId: student.id,
+    amountPaid: document.getElementById('fee-paid-' + student.id)?.value || 0
+  }));
+  try {
+    await API.saveTeacherFees({ paidOn, entries });
+    showTeacherPanelMessage('teacherFeeMessage', 'Fee payments saved successfully.', false);
+    await loadTeacherAttendance();
+  } catch (err) {
+    showTeacherPanelMessage('teacherFeeMessage', err.message || 'Could not save fee payments.', true);
+  }
+}
+
+function renderTeacherAttendanceTable(students) {
+  const body = document.getElementById('teacherAttendanceBody');
+  if (!body) return;
+  if (!students.length) { body.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students registered yet.</td></tr>'; return; }
+  body.innerHTML = students.map((student) => {
+    const attendance = student.attendance || {};
+    const percentage = Number(attendance.percentage || 0);
+    const currentStatus = student.currentStatus === 'absent' ? 'absent' : 'present';
+    const approvalStatus = student.approvalStatus === 'rejected' ? 'rejected' : 'accepted';
+    return `
+      <tr data-student-id="${student.id}">
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">
+          <div style="font-weight:700;">${student.name}</div>
+          <div style="color:var(--muted);font-size:0.85rem;">${student.email || ''}</div>
+        </td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">Class ${student.class}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${student.mobile || 'Not available'}</td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">${percentage}% <span style="color:var(--muted);">(${attendance.present || 0}/${attendance.total || 0})</span></td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">
+          <label style="margin-right:12px;cursor:pointer;"><input type="radio" name="attendance-${student.id}" value="present" ${currentStatus === 'present' ? 'checked' : ''}> Present</label>
+          <label style="cursor:pointer;"><input type="radio" name="attendance-${student.id}" value="absent" ${currentStatus === 'absent' ? 'checked' : ''}> Absent</label>
+        </td>
+        <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,0.06);">
+          <select id="approval-${student.id}" style="min-width:140px;">
+            <option value="accepted" ${approvalStatus === 'accepted' ? 'selected' : ''}>Accept</option>
+            <option value="rejected" ${approvalStatus === 'rejected' ? 'selected' : ''}>Reject</option>
+          </select>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showTeacherAttendanceMessage(message, isError) {
+  const box = document.getElementById('teacherAttendanceMessage');
+  if (!box) return;
+  box.style.display = 'block';
+  box.style.background = isError ? 'rgba(255,45,120,0.12)' : 'rgba(77,158,255,0.12)';
+  box.style.borderColor = isError ? 'rgba(255,45,120,0.25)' : 'rgba(77,158,255,0.25)';
+  box.textContent = message;
 }
 
 // ── DOUBTS ────────────────────────────────────────────────────────────────────
-async function submitStudentDoubt() {
-  const text  = (document.getElementById('doubtQuestionText')?.value  || '').trim();
-  const image = (document.getElementById('doubtQuestionImage')?.value || '').trim();
-  const msg   = document.getElementById('doubtSubmitMessage');
-  if (!text) { if (msg) { msg.textContent='Please enter your question.'; msg.style.display='block'; } return; }
-  try {
-    await API.submitStudentDoubt(text, image || null);
-    closeDoubtModal(); await loadStudentDoubts();
-  } catch (err) { if (msg) { msg.textContent=err.message||'Could not submit.'; msg.style.display='block'; } }
-}
-
 async function loadStudentDoubts() {
   if (!hasActiveStudentSession()) return;
-  const wrap  = document.getElementById('studentDoubtList');
-  const stack = document.getElementById('doubtPopupStack');
+  const wrap = document.getElementById('studentDoubtList');
+  const popupStack = document.getElementById('doubtPopupStack');
   if (!wrap) return;
   try {
-    const data   = await API.getStudentDoubts();
+    const data = await API.getStudentDoubts();
     const doubts = data.doubts || [];
-    if (!doubts.length) { wrap.innerHTML=''; if(stack) stack.innerHTML=''; return; }
-    const answered = doubts.filter(d => d.status==='answered' && (d.answer_text||d.answer_image));
-    wrap.innerHTML = doubts.map((d,i) => {
-      const st  = d.status==='answered'?'answered':'open';
-      const ans = (d.answer_text||d.answer_image)
-        ? `<div class="doubt-reply-block"><div class="doubt-reply-tag">Reply ${i+1}</div>
-           ${d.answer_text?`<div class="doubt-reply-text">${d.answer_text}</div>`:''}
-           ${d.answer_image?`<div class="doubt-answer"><img src="${d.answer_image}" /></div>`:''}</div>` : '';
-      return `<div class="doubt-item">
-        <div class="doubt-question-title">Q${i+1}: ${d.question_text}</div>
-        ${d.question_image?`<div class="doubt-answer"><img src="${d.question_image}" /></div>`:''}
-        <div class="doubt-meta"><span>${d.created_at||'Recently'}</span>
-        <span class="doubt-status ${st}">${st}</span></div>${ans}</div>`;
-    }).join('');
-    if (stack) {
-      stack.innerHTML = answered.slice(0,2).map((d,i)=>
-        `<div class="doubt-popup show"><div class="doubt-popup-label">${i+1}</div>
-         <div class="doubt-popup-text">${d.answer_text||'Teacher sent an image.'}</div></div>`
-      ).join('');
+    if (!doubts.length) {
+      wrap.innerHTML = '';
+      if (popupStack) popupStack.innerHTML = '';
+      return;
     }
-  } catch (_) { wrap.innerHTML=''; if(stack) stack.innerHTML=''; }
+    const answeredDoubts = doubts.filter((doubt) => doubt.status === 'answered' && (doubt.answer_text || doubt.answer_image));
+    wrap.innerHTML = doubts.map((doubt, index) => {
+      const status = doubt.status === 'answered' ? 'answered' : 'open';
+      const answer = (doubt.answer_text || doubt.answer_image) ? `
+        <div class="doubt-reply-block">
+          <div class="doubt-reply-tag">Reply ${index + 1}</div>
+          ${doubt.answer_text ? `<div class="doubt-reply-text">${doubt.answer_text}</div>` : ''}
+          ${doubt.answer_image ? `<div class="doubt-answer"><img src="${doubt.answer_image}" alt="Answer" /></div>` : ''}
+        </div>` : '';
+      return `
+        <div class="doubt-item">
+          <div class="doubt-question-title">Question ${index + 1}: ${doubt.question_text}</div>
+          ${doubt.question_image ? `<div class="doubt-answer"><img src="${doubt.question_image}" alt="Question" /></div>` : ''}
+          <div class="doubt-meta">
+            <span>Asked on ${doubt.created_at || 'Recently'}</span>
+            <span class="doubt-status ${status}">${status}</span>
+          </div>
+          ${answer}
+        </div>
+      `;
+    }).join('');
+    if (popupStack) {
+      popupStack.innerHTML = answeredDoubts.slice(0, 2).map((doubt, index) => `
+        <div class="doubt-popup show">
+          <div class="doubt-popup-label">${index + 1}</div>
+          <div class="doubt-popup-text">${doubt.answer_text || 'Teacher sent an answer image.'}</div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    wrap.innerHTML = '';
+    if (popupStack) popupStack.innerHTML = '';
+  }
 }
 
 async function loadTeacherDoubts() {
@@ -743,378 +1225,201 @@ async function loadTeacherDoubts() {
   const wrap = document.getElementById('teacherDoubtList');
   if (!wrap) return;
   try {
-    const data   = await API.getTeacherDoubts();
+    const data = await API.getTeacherDoubts();
     const doubts = data.doubts || [];
-    if (!doubts.length) { wrap.innerHTML='<div style="color:var(--muted);">No doubts yet.</div>'; return; }
-    wrap.innerHTML = doubts.map(d => {
-      const done = d.status==='answered';
-      return `<div class="doubt-item teacher-doubt-card">
-        <div class="teacher-doubt-head">
-          <div class="teacher-doubt-student">${d.student_name||'Student'} — Class ${d.student_class||'?'}</div>
-          <span class="doubt-status ${done?'answered':'open'}">${done?'Answered':'Open'}</span>
+    if (!doubts.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No student doubts submitted yet.</div>'; return; }
+    wrap.innerHTML = doubts.map((doubt) => {
+      const isAnswered = doubt.status === 'answered';
+      return `
+        <div class="doubt-item teacher-doubt-card">
+          <div class="teacher-doubt-head">
+            <div class="teacher-doubt-student">${doubt.student_name || 'Student'} - Class ${doubt.student_class || '?'}</div>
+            <span class="doubt-status ${isAnswered ? 'answered' : 'open'}">${isAnswered ? 'Answered' : 'Open'}</span>
+          </div>
+          <div class="doubt-question-title">${doubt.question_text}</div>
+          ${doubt.question_image ? `<div class="doubt-answer"><img src="${doubt.question_image}" alt="Question image" /></div>` : ''}
+          ${isAnswered ? `
+            <div class="doubt-reply-block">
+              <div class="doubt-reply-tag">Your Reply</div>
+              ${doubt.answer_text ? `<div class="doubt-reply-text">${doubt.answer_text}</div>` : ''}
+              ${doubt.answer_image ? `<div class="doubt-answer"><img src="${doubt.answer_image}" alt="Answer image" /></div>` : ''}
+            </div>
+          ` : `
+            <div class="doubt-input" style="margin-top:12px;">
+              <textarea id="doubt-answer-${doubt.id}" rows="3" placeholder="Type your reply here..."></textarea>
+              <input type="text" id="doubt-answer-img-${doubt.id}" placeholder="Image URL (optional)" />
+              <button class="btn-secondary" onclick="answerTeacherDoubt(${doubt.id})">Send Reply</button>
+            </div>
+          `}
+          <div class="doubt-meta"><span>${doubt.created_at || ''}</span></div>
         </div>
-        <div class="doubt-question-title">${d.question_text}</div>
-        ${d.question_image?`<div class="doubt-answer"><img src="${d.question_image}" /></div>`:''}
-        ${done
-          ? `<div class="doubt-reply-block"><div class="doubt-reply-tag">Your Reply</div>
-             ${d.answer_text?`<div class="doubt-reply-text">${d.answer_text}</div>`:''}
-             ${d.answer_image?`<div class="doubt-answer"><img src="${d.answer_image}" /></div>`:''}</div>`
-          : `<div class="doubt-input" style="margin-top:12px;">
-             <textarea id="doubt-answer-${d.id}" rows="3" placeholder="Type reply..."></textarea>
-             <input type="text" id="doubt-answer-img-${d.id}" placeholder="Image URL (optional)" />
-             <button class="btn-secondary" onclick="answerTeacherDoubt(${d.id})">Send Reply</button></div>`}
-        <div class="doubt-meta"><span>${d.created_at||''}</span></div></div>`;
+      `;
     }).join('');
-  } catch (err) { wrap.innerHTML=`<div style="color:var(--muted);">${err.message||'Could not load.'}</div>`; }
+  } catch (err) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.9rem;">${err.message || 'Could not load doubts.'}</div>`;
+  }
 }
 
 async function answerTeacherDoubt(id) {
-  const text  = (document.getElementById('doubt-answer-'+id)?.value     || '').trim();
-  const image = (document.getElementById('doubt-answer-img-'+id)?.value || '').trim();
+  const text = (document.getElementById('doubt-answer-' + id)?.value || '').trim();
+  const image = (document.getElementById('doubt-answer-img-' + id)?.value || '').trim();
   if (!text) { alert('Please enter a reply.'); return; }
-  try { await API.answerTeacherDoubt(id, text, image||null); await loadTeacherDoubts(); await loadStudentDoubts(); }
-  catch (err) { alert(err.message||'Could not send reply.'); }
-}
-
-// ── TEACHER FUNCTIONS ─────────────────────────────────────────────────────────
-let teacherStudentCache = [];
-
-function setDefaultTeacherDate() {
-  const input = document.getElementById('teacherAttendanceDate');
-  if (!input || input.value) return;
-  const today = new Date();
-  input.value = new Date(today.getTime() - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
-}
-function showTeacherMsg(id, msg, isErr) {
-  const box = document.getElementById(id); if (!box) return;
-  box.style.display='block';
-  box.style.background   = isErr?'rgba(255,45,120,.12)':'rgba(77,158,255,.12)';
-  box.style.borderColor  = isErr?'rgba(255,45,120,.25)':'rgba(77,158,255,.25)';
-  box.textContent = msg;
-}
-function renderTeacherMcqCards(count) {
-  const wrap = document.getElementById('teacherMcqCards'); if (!wrap) return;
-  const n = Math.max(1, Math.min(20, Number(count)||10));
-  const c = document.getElementById('teacherMcqCount'); if (c) c.value=n;
-  wrap.innerHTML = Array.from({length:n},(_,idx)=>{
-    const i=idx+1;
-    return `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;">
-      <div style="font-size:.78rem;color:var(--blue);font-weight:800;margin-bottom:10px;">Question ${i}</div>
-      <div class="form-group" style="margin:0 0 10px;"><label>Question Text</label>
-        <textarea id="teacherMcqQuestion${i}" rows="3" placeholder="Enter question ${i}"></textarea></div>
-      <div class="form-group" style="margin:0 0 10px;"><label>Question Image URL</label>
-        <input type="text" id="teacherMcqQuestionImage${i}" placeholder="Optional image URL" /></div>
-      ${[1,2,3,4].map(o=>`<div style="margin-bottom:8px;">
-        <div class="form-group" style="margin:0 0 5px;"><label>Option ${o} Text</label>
-          <input type="text" id="teacherMcq${i}Option${o}" placeholder="Option ${o}" /></div>
-        <div class="form-group" style="margin:0;"><label>Option ${o} Image</label>
-          <input type="text" id="teacherMcq${i}Option${o}Image" placeholder="Optional" /></div></div>`).join('')}
-      <div class="form-group" style="margin:0;"><label>Correct Option</label>
-        <select id="teacherMcq${i}Correct">
-          <option value="0">Option 1</option><option value="1">Option 2</option>
-          <option value="2">Option 3</option><option value="3">Option 4</option>
-        </select></div></div>`;
-  }).join('');
-}
-function regenerateTeacherMcqCards() { renderTeacherMcqCards(document.getElementById('teacherMcqCount')?.value||10); }
-
-function renderTeacherMcqList(mcqs) {
-  const body = document.getElementById('teacherMcqList'); if (!body) return;
-  if (!mcqs.length) { body.innerHTML='<div style="color:var(--muted);">No MCQ batches posted yet.</div>'; return; }
-  body.innerHTML = mcqs.map((mcq,idx)=>{
-    const reports   = Array.isArray(mcq.student_reports)?mcq.student_reports:[];
-    const attempted = reports.filter(s=>s.attemptedCount>0);
-    const notAtt    = reports.filter(s=>s.attemptedCount===0);
-    const accuracy  = Number(mcq.submission_count)?Math.round(Number(mcq.correct_count)/Number(mcq.submission_count)*100):0;
-    return `<div style="${idx?'padding-top:16px;margin-top:16px;border-top:1px solid rgba(255,255,255,.06);':''}">
-      <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
-        <div><div style="font-size:.78rem;color:var(--blue);font-weight:700;margin-bottom:4px;">
-          ${mcq.batch_title||mcq.title} — Class ${mcq.class_scope||'all'}</div>
-          <div style="font-weight:700;">${mcq.question_count||0} questions</div></div>
-        <div><div style="font-weight:700;color:var(--green);">${accuracy}% accuracy</div>
-          <div style="color:var(--muted);font-size:.82rem;">Attempted: ${mcq.attempted_students||0} | Not: ${mcq.not_attempted_students||0}</div></div>
-      </div>
-      <div style="margin-top:14px;padding:14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);">
-        <div style="font-size:.76rem;color:var(--blue);font-weight:800;margin-bottom:8px;">Student Scores</div>
-        ${attempted.length?attempted.map(s=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);">
-          <div><strong>${s.name}</strong><div style="font-size:.8rem;color:var(--muted);">Class ${s.class}</div></div>
-          <div style="color:var(--green);font-weight:700;">${s.score}</div></div>`).join('')
-          :'<div style="color:var(--muted);font-size:.84rem;">No attempts yet.</div>'}
-        ${notAtt.length?`<div style="margin-top:10px;font-size:.82rem;color:var(--muted);">Not attempted: ${notAtt.map(s=>s.name+' (Cl.'+s.class+')').join(', ')}</div>`:''}
-      </div></div>`;
-  }).join('');
-}
-
-async function loadTeacherMcqs() {
-  if (!hasActiveTeacherSession()) return;
-  try { const data=await API.getTeacherMcqs(); renderTeacherMcqList(data.mcqs||[]); }
-  catch (err) { showTeacherMsg('teacherMcqMessage',err.message||'Could not load MCQs.',true); }
-}
-
-async function createTeacherMcq() {
-  if (!hasActiveTeacherSession()) { alert('Please login as teacher.'); return; }
-  const title      = (document.getElementById('teacherMcqTitle')?.value||'').trim()||'Daily MCQ Batch';
-  const classScope = (document.getElementById('teacherMcqClass')?.value||'all').trim();
-  const qCount     = Math.max(1,Math.min(20,Number(document.getElementById('teacherMcqCount')?.value||10)));
-  const questions  = Array.from({length:qCount},(_,idx)=>{
-    const i=idx+1;
-    const question=(document.getElementById('teacherMcqQuestion'+i)?.value||'').trim();
-    const imageUrl=(document.getElementById('teacherMcqQuestionImage'+i)?.value||'').trim();
-    const options=[1,2,3,4].map(o=>(document.getElementById('teacherMcq'+i+'Option'+o)?.value||'').trim());
-    const correctIndex=Number(document.getElementById('teacherMcq'+i+'Correct')?.value||0);
-    return {question,imageUrl,options,correctIndex};
-  }).filter(item=>item.question||item.imageUrl||item.options.some(o=>o));
-  if (!questions.length) { showTeacherMsg('teacherMcqMessage','Add at least one MCQ.',true); return; }
-  if (questions.some(item=>(!item.question&&!item.imageUrl)||item.options.some(o=>!o))) {
-    showTeacherMsg('teacherMcqMessage','Each MCQ needs text/image and 4 options.',true); return;
-  }
   try {
-    await API.createTeacherMcq({title,classScope,questions});
-    const t=document.getElementById('teacherMcqTitle'); if(t) t.value='';
-    showTeacherMsg('teacherMcqMessage',questions.length+' MCQ(s) posted.',false);
-    renderTeacherMcqCards(qCount); await loadTeacherMcqs();
-  } catch (err) { showTeacherMsg('teacherMcqMessage',err.message||'Could not post.',true); }
-}
-
-function renderTeacherPaperList(papers) {
-  const wrap=document.getElementById('teacherPaperList'); if(!wrap) return;
-  if(!papers.length){wrap.innerHTML='<div style="color:var(--muted);">No papers yet.</div>';return;}
-  wrap.innerHTML=papers.map((p,i)=>
-    `<div style="${i?'padding-top:14px;margin-top:14px;border-top:1px solid rgba(255,255,255,.06);':''}display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div><div style="font-weight:700;">${p.title}</div>
-        <div style="color:var(--muted);font-size:.84rem;">Class ${p.class_scope||'all'} — ${p.resource_type||'doc'}</div></div>
-      <a href="${p.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a></div>`
-  ).join('');
-}
-
-async function loadTeacherQuestionPapers() {
-  if(!hasActiveTeacherSession()) return;
-  try{const d=await API.getTeacherQuestionPapers();renderTeacherPaperList(d.papers||[]);}
-  catch(err){showTeacherMsg('teacherPaperMessage',err.message||'Could not load papers.',true);}
-}
-
-async function createTeacherQuestionPaper() {
-  const title=(document.getElementById('teacherPaperTitle')?.value||'').trim();
-  const classScope=(document.getElementById('teacherPaperClass')?.value||'all').trim();
-  const resourceType=(document.getElementById('teacherPaperType')?.value||'pdf').trim();
-  const resourceUrl=(document.getElementById('teacherPaperUrl')?.value||'').trim();
-  if(!title||!resourceUrl){showTeacherMsg('teacherPaperMessage','Enter title and URL.',true);return;}
-  try{
-    await API.createTeacherQuestionPaper({title,classScope,resourceType,resourceUrl});
-    ['teacherPaperTitle','teacherPaperUrl'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-    showTeacherMsg('teacherPaperMessage','Paper added.',false);
-    await loadTeacherQuestionPapers();
-  }catch(err){showTeacherMsg('teacherPaperMessage',err.message||'Could not add.',true);}
-}
-
-function renderTeacherWeeklyTestTable(students) {
-  const body=document.getElementById('teacherWeeklyTestBody');if(!body)return;
-  if(!students.length){body.innerHTML='<tr><td colspan="5" style="padding:18px;color:var(--muted);">No students.</td></tr>';return;}
-  body.innerHTML=students.map(s=>
-    `<tr data-student-id="${s.id}">
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">${s.name}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">Class ${s.class}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <input type="number" min="0" id="weekly-marks-${s.id}" placeholder="Marks" style="width:120px;" /></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <input type="text" id="weekly-note-${s.id}" placeholder="Note" style="width:100%;" /></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        ${s.latestWeeklyTest?s.latestWeeklyTest.title+' — '+s.latestWeeklyTest.marks_obtained+'/'+s.latestWeeklyTest.total_marks:'No entry'}</td>
-    </tr>`
-  ).join('');
-}
-
-async function saveTeacherWeeklyTests() {
-  const title=(document.getElementById('teacherWeeklyTestTitle')?.value||'').trim();
-  const testDate=document.getElementById('teacherWeeklyTestDate')?.value||'';
-  const total=Number(document.getElementById('teacherWeeklyTestTotal')?.value||100);
-  if(!title||!testDate){showTeacherMsg('teacherWeeklyTestMessage','Enter title and date.',true);return;}
-  const entries=teacherStudentCache.map(s=>({studentId:s.id,marksObtained:document.getElementById('weekly-marks-'+s.id)?.value||'',notes:document.getElementById('weekly-note-'+s.id)?.value||''}));
-  try{await API.saveTeacherWeeklyTests({title,testDate,totalMarks:total,entries});showTeacherMsg('teacherWeeklyTestMessage','Marks saved.',false);await loadTeacherAttendance();}
-  catch(err){showTeacherMsg('teacherWeeklyTestMessage',err.message||'Could not save.',true);}
-}
-
-function renderTeacherFeeTable(students) {
-  const body=document.getElementById('teacherFeeBody');if(!body)return;
-  if(!students.length){body.innerHTML='<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students.</td></tr>';return;}
-  body.innerHTML=students.map(s=>{
-    const fee=s.feeSummary||{};
-    return `<tr data-student-id="${s.id}">
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">${s.name}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">Class ${s.class}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">Rs ${fee.totalDue||0}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">Rs ${fee.totalPaid||0}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);color:${Number(fee.pending||0)>0?'var(--pink)':'var(--green)'};">Rs ${fee.pending||0}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <input type="number" min="0" id="fee-paid-${s.id}" placeholder="Amount paid" style="width:140px;" /></td>
-    </tr>`;
-  }).join('');
-}
-
-async function saveTeacherFees() {
-  const paidOn=document.getElementById('teacherFeeDate')?.value||'';
-  if(!paidOn){showTeacherMsg('teacherFeeMessage','Choose payment date.',true);return;}
-  const entries=teacherStudentCache.map(s=>({studentId:s.id,amountPaid:document.getElementById('fee-paid-'+s.id)?.value||0}));
-  try{await API.saveTeacherFees({paidOn,entries});showTeacherMsg('teacherFeeMessage','Fees saved.',false);await loadTeacherAttendance();}
-  catch(err){showTeacherMsg('teacherFeeMessage',err.message||'Could not save.',true);}
-}
-
-function renderTeacherAttendanceTable(students) {
-  const body=document.getElementById('teacherAttendanceBody');if(!body)return;
-  if(!students.length){body.innerHTML='<tr><td colspan="6" style="padding:18px;color:var(--muted);">No students registered.</td></tr>';return;}
-  body.innerHTML=students.map(s=>{
-    const att=s.attendance||{};
-    const cur=s.currentStatus==='absent'?'absent':'present';
-    const app=s.approvalStatus==='rejected'?'rejected':'accepted';
-    return `<tr data-student-id="${s.id}">
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <div style="font-weight:700;">${s.name}</div>
-        <div style="color:var(--muted);font-size:.85rem;">${s.email||''}</div></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">Class ${s.class}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">${s.mobile||'N/A'}</td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        ${att.percentage||0}% <span style="color:var(--muted);">(${att.present||0}/${att.total||0})</span></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <label style="margin-right:12px;cursor:pointer;">
-          <input type="radio" name="attendance-${s.id}" value="present" ${cur==='present'?'checked':''}> Present</label>
-        <label style="cursor:pointer;">
-          <input type="radio" name="attendance-${s.id}" value="absent" ${cur==='absent'?'checked':''}> Absent</label></td>
-      <td style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.06);">
-        <select id="approval-${s.id}" style="min-width:140px;">
-          <option value="accepted" ${app==='accepted'?'selected':''}>Accept</option>
-          <option value="rejected" ${app==='rejected'?'selected':''}>Reject</option>
-        </select></td>
-    </tr>`;
-  }).join('');
+    await API.answerTeacherDoubt(id, text, image || null);
+    await loadTeacherDoubts();
+    await loadStudentDoubts();
+  } catch (err) {
+    alert(err.message || 'Could not send reply.');
+  }
 }
 
 async function loadTeacherAttendance() {
-  if(!hasActiveTeacherSession()) return;
+  if (!hasActiveTeacherSession()) return;
   setDefaultTeacherDate();
-  const dt=document.getElementById('teacherAttendanceDate')?.value||'';
-  const wd=document.getElementById('teacherWeeklyTestDate');
-  const fd=document.getElementById('teacherFeeDate');
-  if(wd&&!wd.value) wd.value=dt;
-  if(fd&&!fd.value) fd.value=dt;
+  const attendanceDate = document.getElementById('teacherAttendanceDate')?.value || '';
+  const weeklyDate = document.getElementById('teacherWeeklyTestDate');
+  const feeDate = document.getElementById('teacherFeeDate');
+  if (weeklyDate && !weeklyDate.value) weeklyDate.value = attendanceDate;
+  if (feeDate && !feeDate.value) feeDate.value = attendanceDate;
   try {
-    const data=await API.getTeacherStudents(dt);
-    teacherStudentCache=data.students||[];
+    const data = await API.getTeacherStudents(attendanceDate);
+    teacherStudentCache = data.students || [];
     renderTeacherAttendanceTable(teacherStudentCache);
     renderTeacherWeeklyTestTable(teacherStudentCache);
     renderTeacherFeeTable(teacherStudentCache);
-    const info=document.getElementById('teacherSheetInfo');
-    if(info) info.textContent=(data.attendanceSheet?.path)?'Sheet: '+data.attendanceSheet.path:'Sheet generated after saving.';
+    renderTeacherSheetInfo(data.attendanceSheet?.path || '');
     renderNavProfile();
     await loadTeacherQuestionPapers();
-  } catch(err){showTeacherMsg('teacherAttendanceMessage',err.message||'Could not load attendance.',true);}
+  } catch (err) {
+    showTeacherAttendanceMessage(err.message || 'Could not load attendance.', true);
+  }
 }
 
 async function saveTeacherAttendance() {
-  if(!hasActiveTeacherSession()){alert('Please login as teacher.');return;}
-  const date=document.getElementById('teacherAttendanceDate')?.value;
-  if(!date){showTeacherMsg('teacherAttendanceMessage','Choose a date.',true);return;}
-  const rows=Array.from(document.querySelectorAll('#teacherAttendanceBody tr[data-student-id]')).map(row=>{
-    const sid=Number(row.dataset.studentId||0);
-    const sel=row.querySelector('input[type="radio"]:checked');
-    const app=row.querySelector('select');
-    return sid?{studentId:sid,status:sel?sel.value:'present',approvalStatus:app?app.value:'accepted'}:null;
+  if (!hasActiveTeacherSession()) { alert('Please login as teacher first.'); return; }
+  const date = document.getElementById('teacherAttendanceDate')?.value;
+  if (!date) { showTeacherAttendanceMessage('Please choose an attendance date.', true); return; }
+  const rows = Array.from(document.querySelectorAll('#teacherAttendanceBody tr[data-student-id]')).map((row) => {
+    const studentId = Number(row.dataset.studentId || 0);
+    const selected = row.querySelector('input[type="radio"]:checked');
+    const approval = row.querySelector('select');
+    return studentId ? { studentId, status: selected ? selected.value : 'present', approvalStatus: approval ? approval.value : 'accepted' } : null;
   }).filter(Boolean);
   try {
-    const result=await API.saveTeacherAttendance(date,rows);
-    const info=document.getElementById('teacherSheetInfo');
-    if(info) info.textContent=result.sheetPath?'Sheet: '+result.sheetPath:'Sheet generated.';
-    showTeacherMsg('teacherAttendanceMessage','Attendance saved for '+date+'.',false);
+    const result = await API.saveTeacherAttendance(date, rows);
+    renderTeacherSheetInfo(result.sheetPath || '');
+    showTeacherAttendanceMessage('Attendance saved successfully for ' + date + '.', false);
+    await refreshRoleData();
     await loadTeacherAttendance();
-  } catch(err){showTeacherMsg('teacherAttendanceMessage',err.message||'Could not save.',true);}
+  } catch (err) {
+    showTeacherAttendanceMessage(err.message || 'Could not save attendance.', true);
+  }
 }
 
-// ── STUDENT RESOURCES ─────────────────────────────────────────────────────────
-async function submitDailyMcqAnswer(mcqId,optionIndex) {
-  try{const r=await API.submitStudentDailyMcq(mcqId,optionIndex);alert(r.isCorrect?'Correct! ✓':'Answer saved.');}
-  catch(err){alert(err.message||'Could not submit.');}
-}
-async function renderDailyMcqs(role) {
-  const summary=document.getElementById('studentMcqSummary');
-  const list=document.getElementById('studentMcqList');
-  if(!summary||!list) return;
+// ── MCQ & PAPERS — STUDENT ────────────────────────────────────────────────────
+async function submitDailyMcqAnswer(mcqId, optionIndex) {
   try {
-    const data=role==='parent'?await API.getParentDailyMcqs():await API.getStudentDailyMcqs();
-    const mcqs=data.mcqs||[];
-    summary.textContent=data.batchTitle?data.batchTitle+' — '+mcqs.length+' question(s)':'No active MCQ batch.';
-    if(!mcqs.length){list.innerHTML='<div style="color:var(--muted);">No MCQs right now.</div>';return;}
-    list.innerHTML=mcqs.map((mcq,idx)=>{
-      const opts=Array.isArray(mcq.options)?mcq.options:[];
-      const opHtml=opts.map((opt,i)=>{
-        const txt=typeof opt==='string'?opt:(opt&&opt.text||'');
-        const img=typeof opt==='string'?'':(opt&&opt.imageUrl||'');
-        return `<button class="btn-outline-sm" style="text-align:left;" onclick="submitDailyMcqAnswer(${mcq.id},${i})">
-          ${String.fromCharCode(65+i)}. ${txt}
-          ${img?`<img src="${img}" style="max-width:180px;width:100%;border-radius:12px;display:block;margin-top:6px;" />`:''}
-        </button>`;
-      }).join('');
-      return `<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:10px;">
-        <div style="font-weight:700;">${mcq.question||'Q'+(idx+1)}</div>
-        <div style="display:grid;gap:8px;">${opHtml}</div></div>`;
-    }).join('');
-  } catch(err){summary.textContent=err.message||'Could not load.';list.innerHTML='';}
+    const result = await API.submitStudentDailyMcq(mcqId, optionIndex);
+    alert(result.isCorrect ? 'Correct answer! ✓' : 'Answer saved.');
+  } catch (err) {
+    alert(err.message || 'Could not submit MCQ answer.');
+  }
 }
+
 async function renderQuestionPapers(role) {
-  const list=document.getElementById('studentPaperList'); if(!list) return;
+  const list = document.getElementById('studentPaperList');
+  if (!list) return;
   try {
-    const data=role==='parent'?await API.getParentQuestionPapers():await API.getStudentQuestionPapers();
-    const papers=data.papers||[];
-    if(!papers.length){list.innerHTML='<div style="color:var(--muted);">No papers yet.</div>';return;}
-    list.innerHTML=papers.map(p=>
-      `<div style="padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;gap:12px;align-items:center;">
-        <div><div style="font-weight:700;">${p.title}</div>
-          <div style="color:var(--muted);font-size:.82rem;">Class ${p.class_scope||'all'} — ${p.resource_type||'doc'}</div></div>
-        <a href="${p.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a></div>`
+    const data = role === 'parent' ? await API.getParentQuestionPapers() : await API.getStudentQuestionPapers();
+    const papers = data.papers || [];
+    if (!papers.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>'; return; }
+    list.innerHTML = papers.map((paper) => `
+      <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;justify-content:space-between;gap:12px;align-items:center;">
+        <div>
+          <div style="font-weight:700;">${paper.title}</div>
+          <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Class ${paper.class_scope || 'all'} - ${paper.resource_type || 'document'} - ${paper.posted_at || ''}</div>
+        </div>
+        <a href="${paper.resource_url}" target="_blank" rel="noreferrer" style="color:var(--blue);font-weight:700;">Open ↗</a>
+      </div>`
     ).join('');
-  } catch(_){list.innerHTML='<div style="color:var(--muted);">Unable to load.</div>';}
+  } catch (err) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">Unable to load question papers.</div>';
+  }
 }
+
 async function loadStudentResources() {
-  const role=getCurrentRole();
-  if(role!=='student'&&role!=='parent') return;
+  const role = getCurrentRole();
+  if (role !== 'student' && role !== 'parent') return;
   await renderDailyMcqs(role);
   await renderQuestionPapers(role);
 }
 
+async function renderDailyMcqs(role) {
+  const summary = document.getElementById('studentMcqSummary');
+  const list = document.getElementById('studentMcqList');
+  if (!summary || !list) return;
+  try {
+    const data = role === 'parent' ? await API.getParentDailyMcqs() : await API.getStudentDailyMcqs();
+    const mcqs = data.mcqs || [];
+    summary.textContent = data.batchTitle
+      ? `${data.batchTitle} - ${mcqs.length} question(s)${data.availableUntil ? ' - ends ' + data.availableUntil : ''}`
+      : 'No active MCQ batch yet.';
+    if (!mcqs.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">No MCQs available right now.</div>'; return; }
+    if (role === 'parent') {
+      list.innerHTML = mcqs.map((mcq, idx) => `
+        <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);">
+          <div style="font-weight:700;">${mcq.question || 'Question ' + (idx + 1)}</div>
+          <div style="color:var(--muted);font-size:0.82rem;margin-top:6px;">Student can attempt this in their dashboard.</div>
+        </div>`).join('');
+      return;
+    }
+    list.innerHTML = mcqs.map((mcq, idx) => {
+      const options = Array.isArray(mcq.options) ? mcq.options : [];
+      const questionLabel = mcq.question ? mcq.question : 'Question ' + (idx + 1);
+      const optionHtml = options.map((opt, optIndex) => {
+        const option = typeof opt === 'string' ? { text: opt, imageUrl: '' } : { text: opt?.text || '', imageUrl: opt?.imageUrl || '' };
+        return `
+          <button class="btn-outline-sm" style="text-align:left;display:grid;gap:8px;" onclick="submitDailyMcqAnswer(${mcq.id}, ${optIndex})">
+            ${option.text ? `<span>${String.fromCharCode(65 + optIndex)}. ${option.text}</span>` : `<span>${String.fromCharCode(65 + optIndex)}.</span>`}
+            ${option.imageUrl ? `<img src="${option.imageUrl}" alt="Option ${optIndex + 1}" style="max-width:180px;width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.08);display:block;" />` : ''}
+          </button>`;
+      }).join('');
+      return `
+        <div style="padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:10px;">
+          <div style="font-weight:700;">${questionLabel}</div>
+          <div style="display:grid;gap:8px;">${optionHtml}</div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    summary.textContent = err.message || 'Unable to load MCQs.';
+    list.innerHTML = '';
+  }
+}
+
 // ── PAGE LOAD ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Initialize Google Sign-In as soon as the page loads
-  // The google GSI script is loaded async in <head>, so we poll until ready
-  const waitForGoogle = (cb, attempts = 0) => {
-    if (window.google && window.google.accounts) {
-      cb();
-    } else if (attempts < 20) {
-      setTimeout(() => waitForGoogle(cb, attempts + 1), 200);
-    }
-  };
-  waitForGoogle(initGoogleSignIn);
+  renderTeacherMcqCards();
 
-  renderTeacherMcqCards(10);
   const role = getCurrentRole();
 
   if (role === 'student') {
+    await refreshRoleData();
     updateHomeForSession();
-    await refreshStudentData();
     loadStudentResources();
     loadStudentDoubts();
   } else if (role === 'parent') {
-    if (typeof window.ensureParentExtraWidgets === 'function') {
-      window.ensureParentExtraWidgets();
-    }
     updateHomeForSession();
     await refreshParentDashboard();
     loadStudentResources();
   } else if (role === 'teacher') {
+    await refreshRoleData();
     updateHomeForSession();
     loadTeacherAttendance();
     loadTeacherMcqs();
     loadTeacherDoubts();
     if (window.location.hash === '#teacher-dashboard') {
-      const tab = document.getElementById('teacherDashTab');
-      if (tab) switchTab('teacher', tab);
+      const teacherTab = document.getElementById('teacherDashTab');
+      if (teacherTab) switchTab('teacher', teacherTab);
     }
   } else {
     updateHomeForSession();
