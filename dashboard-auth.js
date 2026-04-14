@@ -5,7 +5,6 @@ function formatAttendanceLabel(present, total) {
   return `${safePresent}/${safeTotal} (${percentage}%)`;
 }
 
-// ── HELPER FUNCTIONS ─────────────────────────────────────────────────────────
 function _setElementText(id, value) {
   const node = document.getElementById(id);
   if (node) node.textContent = value;
@@ -22,6 +21,19 @@ function _setUpdatedLabel(id, dateObj) {
   const node = document.getElementById(id);
   if (!node) return;
   node.textContent = _formatUpdatedLabel(dateObj);
+}
+
+// ── Helper: flatten nested report shapes from the API ─────────────────────────
+// The API returns { ...fullData, report: fullData } so we must unwrap carefully
+function _flattenReport(apiResponse) {
+  if (!apiResponse) return {};
+  // If top-level has attendanceSummary, use as-is (already flat)
+  if (apiResponse.attendanceSummary) return apiResponse;
+  // Otherwise try nested report key
+  if (apiResponse.report && apiResponse.report.attendanceSummary) return apiResponse.report;
+  // Merge: prefer top-level keys, fall back to report keys
+  const base = apiResponse.report || {};
+  return Object.assign({}, base, apiResponse);
 }
 
 function dashboardProfileMarkup(title, subtitle, details, logoutLabel, logoutFn) {
@@ -229,9 +241,10 @@ async function setupParentDashboard() {
     return;
   }
   try {
-    const data = await API.getParentReport();
-    const student = data.student;
-    const report = data.report || data || {};
+    const apiResponse = await API.getParentReport();
+    // Flatten the nested report shape
+    const report = _flattenReport(apiResponse);
+    const student = apiResponse.student || report.student || {};
 
     let aiData;
     try {
@@ -247,15 +260,18 @@ async function setupParentDashboard() {
     const topbar = document.querySelector('.topbar');
     if (topbar && student && !document.getElementById('roleDashboardProfile')) {
       const monthAtt = report.attendanceSummary?.month || report.attendance || {};
+      const presentVal = Number(monthAtt.present) || 0;
+      const totalVal = Number(monthAtt.total) || 0;
+      const pct = totalVal ? Math.round((presentVal / totalVal) * 100) : 0;
       topbar.insertAdjacentHTML('afterend', dashboardProfileMarkup(
         'Parent Profile',
-        'Parent of ' + student.name,
+        'Parent of ' + (student.name || 'Student'),
         [
           { label: 'Role', value: 'Parent' },
-          { label: 'Student', value: student.name },
-          { label: 'Class', value: 'Class ' + student.class },
+          { label: 'Student', value: student.name || 'Linked student' },
+          { label: 'Class', value: student.class ? 'Class ' + student.class : 'Not available' },
           { label: 'Mobile', value: student.mobile || 'Not available' },
-          { label: 'Attendance', value: formatAttendanceLabel(monthAtt.present, monthAtt.total) }
+          { label: 'Attendance', value: totalVal ? `${pct}% (${presentVal}/${totalVal})` : 'No attendance yet' }
         ],
         'Logout',
         'API.logoutParent'
@@ -313,8 +329,8 @@ function buildFallbackAiReport(student, report) {
   const name = student?.name || 'Student';
   const weakTopics = report.weakTopics || [];
   const strongTopics = report.strongTopics || [];
-  const latestScore = report.latestTotal ? Math.round((report.latestScore / report.latestTotal) * 100) : 0;
   const monthAtt = report.attendanceSummary?.month || report.attendance || {};
+  const latestScore = report.latestTotal ? Math.round((report.latestScore / report.latestTotal) * 100) : 0;
   return {
     overallSummary: `${name} is progressing steadily. Latest assessment score: ${latestScore}%. Attendance this month: ${monthAtt.present || 0}/${monthAtt.total || 0} days.`,
     highlights: [
@@ -336,9 +352,28 @@ function ensureParentExtraWidgets() {
   const parentTab = document.getElementById('tab-parent');
   if (!parentTab) return;
 
-  if (!document.getElementById('parentAttendanceWidget')) {
-    // The attendance and fee cards already exist in HTML (parentAttendanceMonth, etc.)
-    // We only need to add the extra widgets that are missing
+  // ── Inject student name banner if not already present ──
+  if (!document.getElementById('parentStudentBanner')) {
+    const banner = document.createElement('div');
+    banner.id = 'parentStudentBanner';
+    banner.className = 'dash-widget';
+    banner.style.cssText = 'grid-column:1 / -1;background:linear-gradient(135deg,rgba(77,158,255,0.12),rgba(155,109,255,0.08));border:1px solid rgba(77,158,255,0.25);';
+    banner.innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:2rem;">👤</div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--blue);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Viewing progress for</div>
+          <div id="parentStudentNameDisplay" style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;">Student</div>
+          <div id="parentStudentClassDisplay" style="color:var(--muted);font-size:0.88rem;margin-top:2px;">Loading details...</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div id="parentAttendanceBig" style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--green);">--</div>
+          <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Attendance this month</div>
+        </div>
+      </div>
+    `;
+    // Insert as first child of parent tab
+    parentTab.insertBefore(banner, parentTab.firstChild);
   }
 
   if (!document.getElementById('parentWeeklyTestsWidget')) {
@@ -346,7 +381,7 @@ function ensureParentExtraWidgets() {
     weekly.className = 'dash-widget';
     weekly.id = 'parentWeeklyTestsWidget';
     weekly.innerHTML = `
-      <h4>&#128203; Weekly Test Marks</h4>
+      <h4>📋 Weekly Test Marks</h4>
       <div id="parentWeeklyTestsList" style="color:var(--muted);font-size:0.9rem;">Weekly test marks will appear here once teachers enter them.</div>
       <div class="dash-updated" id="parentWeeklyTestsUpdated">Last updated: --</div>
     `;
@@ -358,7 +393,7 @@ function ensureParentExtraWidgets() {
     mcq.className = 'dash-widget';
     mcq.id = 'parentMcqWidget';
     mcq.innerHTML = `
-      <h4>&#128221; Daily MCQ Performance</h4>
+      <h4>📝 Daily MCQ Performance</h4>
       <div id="parentMcqSummary" style="color:var(--muted);font-size:0.9rem;margin-bottom:12px;">Daily MCQ summary will appear here.</div>
       <div id="parentMcqList"></div>
       <div class="dash-updated" id="parentMcqUpdated">Last updated: --</div>
@@ -371,7 +406,7 @@ function ensureParentExtraWidgets() {
     topics.className = 'dash-widget';
     topics.id = 'parentTopicWidget';
     topics.innerHTML = `
-      <h4>&#128200; Topic Performance</h4>
+      <h4>📈 Topic Performance</h4>
       <div id="parentTopicProgress" style="color:var(--muted);font-size:0.9rem;">Topic performance will appear here after an assessment.</div>
     `;
     parentTab.appendChild(topics);
@@ -382,7 +417,7 @@ function ensureParentExtraWidgets() {
     papers.className = 'dash-widget';
     papers.id = 'parentPapersWidget';
     papers.innerHTML = `
-      <h4>&#128196; Question Papers</h4>
+      <h4>📄 Question Papers</h4>
       <div id="parentQuestionPapersList" style="color:var(--muted);font-size:0.9rem;">No question papers posted yet.</div>
     `;
     parentTab.appendChild(papers);
@@ -393,7 +428,7 @@ function ensureParentExtraWidgets() {
     topicTags.className = 'dash-widget';
     topicTags.id = 'parentTopicsWidget';
     topicTags.innerHTML = `
-      <h4>&#127919; Weak &amp; Strong Topics</h4>
+      <h4>🎯 Weak &amp; Strong Topics</h4>
       <div style="margin-bottom:12px;">
         <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Needs Focus</div>
         <div id="parentWeakTopics" style="color:var(--muted);font-size:0.88rem;">No data yet.</div>
@@ -411,7 +446,7 @@ function ensureParentExtraWidgets() {
     summary.className = 'dash-widget';
     summary.id = 'parentSummaryWidget';
     summary.innerHTML = `
-      <h4>&#128202; Quick Summary</h4>
+      <h4>📊 Quick Summary</h4>
       <div class="metric-row">
         <span class="metric-label">Attendance %</span>
         <span class="metric-value up" id="parentSummaryAttendance">--</span>
@@ -430,14 +465,15 @@ function ensureParentExtraWidgets() {
   }
 }
 
-function injectParentTabData(report, student) {
+function injectParentTabData(rawReport, student) {
   // Always ensure widgets exist before injecting data
   ensureParentExtraWidgets();
 
+  // Flatten nested API shape so we always get a clean flat object
+  const report = _flattenReport(rawReport);
   const now = new Date();
 
   // ── Pull all data from report ──
-  // Support multiple response shapes from the API
   const monthAtt = report.attendanceSummary?.month
     || report.attendance
     || {};
@@ -454,20 +490,33 @@ function injectParentTabData(report, student) {
   const strongTopics = report.strongTopics || [];
   const latestAssessment = report.latestAssessment || null;
 
-  // ── 1. Attendance card (already in HTML) ──
+  // ── Student name & class banner ──
+  const studentName = student?.name || 'Student';
+  const studentClass = student?.class || '';
+  _setElementText('parentStudentNameDisplay', studentName);
+  _setElementText('parentStudentClassDisplay', studentClass ? `Class ${studentClass}` : 'Details loading...');
+
+  // ── Attendance values ──
   const presentVal = Number(monthAtt.present) || 0;
   const totalVal = Number(monthAtt.total) || 0;
-  const overallPct = Number(overallAtt.percentage) || (totalVal ? Math.round((presentVal / totalVal) * 100) : 0);
+  const overallPct = Number(overallAtt.percentage)
+    || (totalVal ? Math.round((presentVal / totalVal) * 100) : 0);
 
+  // Big attendance display in banner
+  _setElementText('parentAttendanceBig',
+    totalVal ? `${presentVal}/${totalVal}` : 'No data');
+
+  // ── 1. Attendance card (already in HTML) ──
   _setElementText('parentAttendanceMonth', `${presentVal} / ${totalVal} days`);
   _setElementText('parentAttendanceOverall', `${overallPct}%`);
-  _setElementText('parentAttendanceStudent', student?.name || 'Linked student');
+  // parentAttendanceStudent may not exist in index.html — use optional setter
+  const attStudentEl = document.getElementById('parentAttendanceStudent');
+  if (attStudentEl) attStudentEl.textContent = studentName;
   _setElementText('parentAttendanceProgressLabel', `${overallPct}%`);
   _setElementWidth('parentAttendanceProgress', `${Math.max(0, Math.min(100, overallPct))}%`);
   _setUpdatedLabel('parentAttendanceUpdated', now);
 
   // ── 2. Fee card (already in HTML) ──
-  const studentClass = student?.class || '';
   _setElementText('parentFeeBatch', studentClass ? `Class ${studentClass}` : 'Linked batch');
   if (feeSummary) {
     const pendingAmt = Number(feeSummary.pending || 0);
@@ -624,11 +673,6 @@ window.addEventListener('load', () => {
 });
 
 // Export helpers with stable names so main.js can also call them if needed
-// (main.js defines setElementText/setElementWidth/etc. — those are used for the index.html parent tab)
-// dashboard-auth.js uses its own prefixed versions to avoid conflicts.
-
-// Also export the non-prefixed versions as aliases for compatibility with main.js calls
-// that reference setElementText, setElementWidth, etc.
 if (typeof setElementText === 'undefined') {
   var setElementText = _setElementText;
 }
