@@ -797,59 +797,53 @@ section{padding:56px 14px;}
       <button class="ltab" id="ltab-teacher" onclick="setLoginType('teacher')">&#128105;&#8205;&#127979; Teacher</button>
     </div>
 
-    <!-- STUDENT LOGIN -->
-    <div id="loginStudentFields">
-      <div class="form-group">
-        <label>Student Email</label>
-        <input type="email" id="ls-email" placeholder="student@email.com" onkeydown="if(event.key==='Enter') loginStudentWithPassword()"/>
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="ls-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter') loginStudentWithPassword()"/>
-      </div>
-      <button class="btn-primary" style="width:100%;margin-bottom:12px;" onclick="loginStudentWithPassword()">Login as Student &#8594;</button>
-      <div class="otp-banner blue" style="margin-bottom:14px;">Or continue with your student Gmail below.</div>
-      <div id="g_id_onload"
-        data-client_id="78739374453-1trbc4voc2jl5binr7e9obv1fmph4dnj.apps.googleusercontent.com"
-        data-context="signin"
-        data-ux_mode="popup"
-        data-callback="handleCredentialResponse"
-        data-auto_prompt="false">
-      </div>
-      <div style="margin:12px auto 10px;display:flex;justify-content:center;"><div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div></div>
-      <p class="modal-footer-link">Don&apos;t have an account? <a href="#" onclick="closeLoginModal();openRegisterModal();">Create student account</a></p>
-    </div>
-
-    <!-- PARENT LOGIN — Google only, no OTP -->
-    <div id="loginParentFields" style="display:none;">
-      <div class="otp-banner blue" style="margin-bottom:16px;">
-        <strong>Parent Login</strong><br/>
-        Sign in with the same Gmail used to register your child's student account. Attendance and progress will load automatically.
-      </div>
-      <div style="margin:8px auto 10px;display:flex;justify-content:center;">
-        <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
-      </div>
-      <p class="modal-footer-link" style="margin-top:8px;"><a href="#" onclick="setLoginType('student');return false;">Switch to student login</a></p>
-    </div>
-
-    <!-- TEACHER LOGIN -->
-    <div id="loginTeacherFields" style="display:none;">
-      <div class="otp-banner blue">Use only ilearntution@gmail.com to continue.</div>
-      <div class="form-group">
-        <label>Teacher Email</label>
-        <input type="email" id="lt-email" placeholder="ilearntution@gmail.com" onkeydown="if(event.key==='Enter') loginTeacher()"/>
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="lt-password" placeholder="Enter teacher password" onkeydown="if(event.key==='Enter') loginTeacher()"/>
-      </div>
-      <button class="btn-primary" style="width:100%;" onclick="loginTeacher()">Login as Teacher &#8594;</button>
-      <div style="margin:12px auto 10px;display:flex;justify-content:center;"><div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div></div>
-      <p class="modal-footer-link"><a href="#" onclick="setLoginType('student');return false;">Switch to student login</a></p>
-    </div>
+   <!-- STUDENT LOGIN -->
+<div id="loginStudentFields">
+  <div class="form-group">
+    <label>Student Email</label>
+    <input type="email" id="ls-email" placeholder="student@email.com" onkeydown="if(event.key==='Enter') loginStudentWithPassword()"/>
   </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="ls-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter') loginStudentWithPassword()"/>
+  </div>
+  <button class="btn-primary" style="width:100%;margin-bottom:12px;" onclick="loginStudentWithPassword()">Login as Student &#8594;</button>
+  <div class="otp-banner blue" style="margin-bottom:14px;">Or continue with your student Gmail below.</div>
+  <div style="margin:12px auto 10px;display:flex;justify-content:center;">
+    <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
+  </div>
+  <p class="modal-footer-link">Don&apos;t have an account? <a href="#" onclick="closeLoginModal();openRegisterModal();">Create student account</a></p>
 </div>
 
+<!-- PARENT LOGIN -->
+<div id="loginParentFields" style="display:none;">
+  <div class="otp-banner blue" style="margin-bottom:16px;">
+    <strong>Parent Login</strong><br/>
+    Sign in with the same Gmail used to register your child's student account. Attendance and progress will load automatically.
+  </div>
+  <div style="margin:8px auto 10px;display:flex;justify-content:center;">
+    <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
+  </div>
+  <p class="modal-footer-link" style="margin-top:8px;"><a href="#" onclick="setLoginType('student');return false;">Switch to student login</a></p>
+</div>
+
+<!-- TEACHER LOGIN -->
+<div id="loginTeacherFields" style="display:none;">
+  <div class="otp-banner blue">Use only ilearntution@gmail.com to continue.</div>
+  <div class="form-group">
+    <label>Teacher Email</label>
+    <input type="email" id="lt-email" placeholder="ilearntution@gmail.com" onkeydown="if(event.key==='Enter') loginTeacher()"/>
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="lt-password" placeholder="Enter teacher password" onkeydown="if(event.key==='Enter') loginTeacher()"/>
+  </div>
+  <button class="btn-primary" style="width:100%;" onclick="loginTeacher()">Login as Teacher &#8594;</button>
+  <div style="margin:12px auto 10px;display:flex;justify-content:center;">
+    <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
+  </div>
+  <p class="modal-footer-link"><a href="#" onclick="setLoginType('student');return false;">Switch to student login</a></p>
+</div>
 <!-- REGISTER + ASSESSMENT MODAL -->
 <div class="modal-overlay" id="registerModal" onclick="if(event.target===this)closeRegisterModal()">
   <div class="modal modal-wide">
