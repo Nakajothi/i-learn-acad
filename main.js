@@ -669,27 +669,33 @@ async function loginTeacher() {
 }
 
 // ── PARENT DASHBOARD REFRESH ──────────────────────────────────────────────────
+// FIX: refreshParentDashboard is the SINGLE source of truth for parent tab data.
+// It fetches live data, caches it, then calls injectParentTabData once with the
+// correct flat data object. updateDashboardAttendanceCards() no longer calls
+// injectParentTabData to avoid overwriting live data with stale cache.
 async function refreshParentDashboard() {
   if (!hasActiveParentSession()) return;
   try {
-    const profile = await API.getParentReport();
+    const apiResponse = await API.getParentReport();
 
-    // Store in localStorage for offline/cached access and nav profile
-    localStorage.setItem('ilearn_parent_profile', JSON.stringify(profile));
-    localStorage.setItem('ilearn_parent_student', JSON.stringify(profile.student || {}));
+    // The server returns { ...fullData, report: fullData }.
+    // We always use the top-level shape (which has attendanceSummary directly).
+    // If the top-level doesn't have attendanceSummary, fall back to .report.
+    const liveData = apiResponse.attendanceSummary ? apiResponse : (apiResponse.report || apiResponse);
+    const student = apiResponse.student || liveData.student || {};
 
-    // The API returns data at top level AND inside report — normalise both
-    const report = profile.report || profile;
-    const student = profile.student || {};
+    // Cache for nav profile / offline use
+    localStorage.setItem('ilearn_parent_profile', JSON.stringify(apiResponse));
+    localStorage.setItem('ilearn_parent_student', JSON.stringify(student));
 
-    // Ensure extra widgets are created before injecting
+    // Ensure widgets exist before injecting
     if (typeof ensureParentExtraWidgets === 'function') {
       ensureParentExtraWidgets();
     }
 
-    // Inject ALL parent tab data in one call
+    // Inject all parent tab widgets with live data
     if (typeof injectParentTabData === 'function') {
-      injectParentTabData(report, student);
+      injectParentTabData(liveData, student);
     }
 
     renderNavProfile();
@@ -775,20 +781,23 @@ function renderTodayTimetableReminder() {
   }).join('');
 }
 
+// FIX: updateDashboardAttendanceCards only handles student + teacher welcome
+// banners and nav profile. For parent role, refreshParentDashboard owns ALL
+// data injection — this function deliberately skips calling injectParentTabData
+// to avoid overwriting live data with stale localStorage cache.
 function updateDashboardAttendanceCards() {
   const now = new Date();
   const role = getCurrentRole();
 
   const studentProfile = getStoredProfileState('ilearn_student_profile');
   const studentStored = getStoredProfileState('ilearn_student');
-  const parentProfile = getStoredProfileState('ilearn_parent_profile');
   const parentStored = getStoredProfileState('ilearn_parent_student');
   const teacherStored = getStoredProfileState('ilearn_teacher');
 
   const welcomeName = role === 'student'
     ? (studentProfile.student?.name || studentStored.name || 'Student')
     : (role === 'parent'
-      ? (parentProfile.student?.name || parentStored.name || 'Parent')
+      ? (parentStored.name || 'Parent')
       : (role === 'teacher' ? (teacherStored.name || 'Teacher') : 'Learner'));
 
   setElementText('dashboardWelcomeName', welcomeName || 'Learner');
@@ -813,17 +822,11 @@ function updateDashboardAttendanceCards() {
   setElementText('studentStreakValue', streakValue + ' day' + (streakValue === 1 ? '' : 's'));
   setUpdatedLabel('studentStreakUpdated', now);
 
-  // ── Parent dashboard: use injectParentTabData for ALL parent widgets ──
-  if (role === 'parent') {
-    // Get the full cached report — support both top-level and nested shapes
-    const fullReport = parentProfile.report || parentProfile;
-    const parentStudent = parentProfile.student || parentStored;
-
-    if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
-    if (typeof injectParentTabData === 'function') {
-      injectParentTabData(fullReport, parentStudent);
-    }
-  }
+  // ── Parent role: DO NOT call injectParentTabData here with stale cache.
+  // refreshParentDashboard() is responsible for all parent widget updates
+  // using fresh live data from the API. Calling injectParentTabData here
+  // with empty localStorage would show 0/0 and "Linked student".
+  // (No parent injection code here — intentional.)
 
   renderTodayTimetableReminder();
 }
@@ -852,7 +855,7 @@ function updateHomeForSession() {
   } else if (role === 'parent') {
     parentTab?.classList.add('active'); studentTab?.classList.remove('active'); teacherTab?.classList.remove('active');
     parentContent?.classList.add('active'); studentContent?.classList.remove('active'); teacherContent?.classList.remove('active');
-    // Create extra widgets before data arrives
+    // Create widget shells before live data arrives
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
   } else if (role === 'teacher') {
     teacherTab?.classList.add('active'); studentTab?.classList.remove('active'); parentTab?.classList.remove('active');
@@ -1397,10 +1400,10 @@ window.addEventListener('load', async () => {
     loadStudentResources();
     loadStudentDoubts();
   } else if (role === 'parent') {
-    // Create widgets first so they exist when data arrives
+    // Ensure widget shells exist first
     if (typeof ensureParentExtraWidgets === 'function') ensureParentExtraWidgets();
     updateHomeForSession();
-    // refreshParentDashboard fetches live data and calls injectParentTabData
+    // refreshParentDashboard fetches live data and populates ALL parent widgets
     await refreshParentDashboard();
     loadStudentResources();
   } else if (role === 'teacher') {
